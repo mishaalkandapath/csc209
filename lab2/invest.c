@@ -24,3 +24,8 @@ int main(int argc, char **argv) {
     printf("%.2f\n", principal);
     return 0;
 }
+
+void invest(double *money, double rate){
+	*money = *money * rate;
+}
+
