@@ -6,6 +6,9 @@
  */
 
 
+void invest(double *money, double rate){
+	*money = *money * rate;
+}
 /*
  * NOTE: don't change the main function!
  * Sample usage:
@@ -25,7 +28,4 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-void invest(double *money, double rate){
-	*money = *money * rate;
-}
 
