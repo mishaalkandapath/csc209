@@ -20,7 +20,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // TODO: Process command line arguments.
+    //processing commnand line arguemnts
     char *required_perm;
     int size_bound = strtol(argv[1], NULL, 10);
     if (argc == 3){
@@ -30,7 +30,6 @@ int main(int argc, char** argv) {
     }
 
     // printf("done loading arguments\n");
-    // TODO: Call check_permissions as part of your solution to count the files to
     // compute and print the correct value.
     //defining ls variables
     char permissions[11];
