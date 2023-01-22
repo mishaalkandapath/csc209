@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-// #include "sin_helpers.c"
 
 int populate_array(int, int *);
 int check_sin(int *);

@@ -1,4 +1,3 @@
-#include <stdio.h>
 // TODO: Implement populate_array
 /*
  * Convert a 9 digit int to a 9 element int array.
@@ -40,7 +39,7 @@ int check_sin(int *sin_array) {
             sum += sin_array[i];
         }
     }
-    
+
     if (sum % 10 == 0){
         return 0;
     }
