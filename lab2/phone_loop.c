@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 int main(int argc, char **argv){
+	int failed = 0;
 	char str1[11];
 	scanf("%10s", str1);
 	int no1;
@@ -11,9 +12,9 @@ int main(int argc, char **argv){
 			printf("%c\n", str1[no1]);
 		}else{
 			printf("ERROR\n");
-			return 1;
+			failed = 1;
 		}
 	}
-	return 0;
+	return failed;
 }
 			
