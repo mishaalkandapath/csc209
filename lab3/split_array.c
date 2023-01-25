@@ -11,7 +11,28 @@
    division.
 */
 int **split_array(const int *s, int length) {
+  
+  int *evens = malloc(sizeof(int) * (length/2));
+  int *odds = malloc(sizeof(int) * ((length/2) + length % 2));
 
+  int even_idx = 0;
+  int odd_idx = 0;
+
+  for (int i = 0; i < length; i++){
+    if (i % 2 == 0){
+      odds[odd_idx] = s[i];
+      odd_idx++;
+    }else{
+      evens[even_idx] = s[i];
+      even_idx++;
+    }
+  }
+
+  int **arrs = malloc(sizeof(int *)*2);
+  arrs[0] = odds;
+  arrs[1] = evens;
+
+  return arrs;
 
 }
 
@@ -22,8 +43,12 @@ int **split_array(const int *s, int length) {
  */
 
 int *build_array(char **strs, int size) {
-
-
+  
+  int *ints = malloc(sizeof(int)*size);
+  for (int i = 0; i < size; i++){
+    ints[i] = strtol(strs[i], NULL, 10);
+  }
+  return ints;
 }
 
 
@@ -32,8 +57,8 @@ int main(int argc, char **argv) {
        arguments.  Do not add any additional lines of code to the main
        function or make other changes.
      */
-    int *full_array = build_array(/* fill in the arguments*/);
-    int **result = split_array(full_array, /* fill in this argument */);
+    int *full_array = build_array( argv + 1, (argc)-1);
+    int **result = split_array(full_array, (argc)-1);
 
     printf("Original array:\n");
     for (int i = 0; i < argc - 1; i++) {
