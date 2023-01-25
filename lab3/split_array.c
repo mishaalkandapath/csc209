@@ -13,7 +13,7 @@
 int **split_array(const int *s, int length) {
   
   int *evens = malloc(sizeof(int) * (length/2));
-  int *odds = malloc(sizeof(int) * ((length/2) + length % 2));
+  int *odds = malloc(sizeof(int) * (length/2) + length % 2);
 
   int even_idx = 0;
   int odd_idx = 0;
