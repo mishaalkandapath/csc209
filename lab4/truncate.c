@@ -11,6 +11,18 @@
     if s is the string "function" and n is 3, then truncate() changes s to
     the string "fun" and returns 5.
 */
+int truncate(char *s, int n){
+    if (strlen(s) > n){
+        int value = strlen(s) - n;
+        char s1[n+1];
+        strncpy(s1, s, n);
+        strncpy(s, s1, n);
+        s[n] = '\0';
+        return value;
+    }else{
+        return 0;
+    }
+}
 
 
 

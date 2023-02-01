@@ -19,13 +19,13 @@ int main(int argc, char **argv) {
     if (!populate_array(sin, sin_array)){
         //953035672
         if (!check_sin(sin_array)){
-            printf("Valid SIN\n");
+            printf("Valid SIN");
         }else{
-            printf("Invalid SIN\n");
+            printf("Invalid SIN");
         }
         return check_sin(sin_array);
     }else{
-        printf("Invalid SIN\n");
+        printf("Invalid SIN");
         return 1;
     }
 
