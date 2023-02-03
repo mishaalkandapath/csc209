@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    printf("%s %ld\n", greeting);
+    printf("%s\n", greeting);
     return 0;
 }
 
