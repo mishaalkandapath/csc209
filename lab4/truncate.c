@@ -14,9 +14,6 @@
 int truncate(char *s, int n){
     if (strlen(s) > n){
         int value = strlen(s) - n;
-        char s1[n+1];
-        strncpy(s1, s, n);
-        strncpy(s, s1, n);
         s[n] = '\0';
         return value;
     }else{
