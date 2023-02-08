@@ -9,6 +9,7 @@
  */
 void read_bitmap_metadata(FILE *image, int *pixel_array_offset, int *width, int *height) {
     fseek(image, 18, SEEK_SET);
+    fread(pixel_array_offset, sizeof(int), 4, image);
     fread(width, sizeof(int), 4, image);
     fread(height, sizeof(int), 4, image);
 }
