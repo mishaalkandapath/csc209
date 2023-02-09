@@ -328,12 +328,13 @@ int make_post(const User *author, User *target, char *contents) {
         (mainuser -> first_post) = new_post;
         new_post -> next = NULL;
     }else{
-        Post *curr_node = new_post;
-        Post *prev_node = (target -> first_post);
-        while(prev_node != NULL){
-            (curr_node -> next) = prev_node;
-            prev_node = (prev_node -> next);
-        }
+        // Post *curr_node = new_post;
+        // Post *prev_node = (target -> first_post);
+        // while(prev_node != NULL){
+        //     (curr_node -> next) = prev_node;
+        //     prev_node = (prev_node -> next);
+        // }
+        (new_post -> next) = (target -> first_post);
         User *mainuser = (User *) target;
         (mainuser -> first_post) = new_post;
     }
@@ -353,6 +354,7 @@ int make_post(const User *author, User *target, char *contents) {
  */
 int delete_user(const char *name, User **user_ptr_del) {
     User *curr_user = *user_ptr_del;
+    User *inter_user = NULL;
     User *prev_user = NULL;
     if (find_user(name, curr_user) == NULL){
         return 1;
@@ -368,15 +370,22 @@ int delete_user(const char *name, User **user_ptr_del) {
             //releasing memory in order:
             //first go through all the posts and clear their memory;
             Post * curr_post = curr_user -> first_post;
+            Post* inter_post = NULL;
             while (curr_post != NULL){
                 free(curr_post -> date);
                 free(curr_post -> contents);
+                inter_post = curr_post -> next; //intermediate pointer to save the next pointer
                 free(curr_post);
-                curr_post = curr_post -> next;
+                curr_post = inter_post;
             }//freed all posts;
+            inter_user = curr_user -> next;
+            printf("%p\n", curr_user);
             free(curr_user); //free curr_user pointer
+            curr_user = inter_user;
+            printf("%s\n", inter_user -> name);
 
         }else{
+            inter_user = curr_user -> next;
             int curr_frnd_idx = 0;
             int found = 0;
             User **user_friends = (curr_user -> friends);
@@ -399,9 +408,9 @@ int delete_user(const char *name, User **user_ptr_del) {
                 }
                 curr_frnd_idx++;
             }
+            prev_user = curr_user;
+            curr_user = inter_user;
         }
-        prev_user = curr_user;
-        curr_user = curr_user -> next;
     }
     return 0;
 }

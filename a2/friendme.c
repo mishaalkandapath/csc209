@@ -177,9 +177,10 @@ int main(int argc, char* argv[]) {
     // Delete all users. This should free all heap memory that was allocated
     // during the run of the program. Uncomment after you've implemented
     // deleting users.
-    /*printf("Freeing all heap space.\n");
+    printf("Freeing all heap space.\n");
     while (user_list != NULL) {
+        printf("deleting user %s\n", user_list -> name);
         delete_user(user_list->name, &user_list);
-    }*/
+    }
     return 0;
  }
