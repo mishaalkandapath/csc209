@@ -107,6 +107,7 @@ int update_pic(User *user, const char *filename) {
             (user -> profile_pic)[i] = filename[i];
         }
         (user ->profile_pic)[strlen(filename)] = '\0';
+        fclose(pfp_file);
         return 0;
     }
 }
@@ -256,8 +257,10 @@ int print_user(const User *user) {
         seconds = local -> tm_sec;
 
         printf("Date: %s %s %d %02d:%02d:%02d %d\n\n", days[weekday],months[month],day, hours, minutes, seconds, year);
-        printf("%s\n\n", curr_post -> contents);
-        printf("==\n\n");
+        printf("%s\n", curr_post -> contents);
+        if (curr_post -> next != NULL){
+            printf("\n==\n\n");
+        }
         curr_post = curr_post -> next;
     }
 
@@ -314,9 +317,7 @@ int make_post(const User *author, User *target, char *contents) {
     strncpy((new_post -> author), (author -> name), strlen(author -> name));
     (new_post -> author)[strlen(author -> name)] = '\0';
 
-    (new_post -> contents) = malloc(sizeof(char)*(strlen(contents)+1));
-    strncpy((new_post -> contents), contents, strlen(contents));
-    (new_post -> contents)[strlen(contents)] = '\0';//alocate space for a post and copy the post in 
+    (new_post -> contents) = contents;//already heap allocated so direct assignment. 
 
     time_t *now_time = malloc(sizeof(time_t));
     *now_time = time(NULL);
@@ -361,6 +362,36 @@ int delete_user(const char *name, User **user_ptr_del) {
     }
     //go through all users and remove friends where necessary
     while (curr_user != NULL){
+        inter_user = curr_user -> next;
+        int curr_frnd_idx = 0;
+        int found = 0;
+        User **user_friends = (curr_user -> friends);
+        for (int i=0; i<MAX_FRIENDS; i++){
+            //can be at the beginning, in between , or at the end
+            if (user_friends[curr_frnd_idx] == NULL){
+                break;
+            }//there are no more users
+            if (strcmp(user_friends[curr_frnd_idx] -> name, name) == 0){
+                //user found at this index. 
+                found++;
+            }
+            if (found){//shift elements if found;
+                if (curr_frnd_idx == MAX_FRIENDS - 1 || user_friends[curr_frnd_idx+1] == NULL){
+                    user_friends[curr_frnd_idx] = NULL; //terminate the list
+                    break; //exit loop as mo more modifications
+                }else{ //there is a user next to it
+                    user_friends[curr_frnd_idx] = user_friends[curr_frnd_idx+1];
+                }
+            }
+            curr_frnd_idx++;
+        }
+        prev_user = curr_user;
+        curr_user = inter_user;
+    }
+    curr_user = *user_ptr_del;
+    inter_user = NULL;
+    prev_user = NULL;
+    while (curr_user != NULL){
         if (strcmp(curr_user -> name, name) == 0){
             if (prev_user == NULL){
                 *user_ptr_del = curr_user -> next;
@@ -379,37 +410,15 @@ int delete_user(const char *name, User **user_ptr_del) {
                 curr_post = inter_post;
             }//freed all posts;
             inter_user = curr_user -> next;
-            printf("%p\n", curr_user);
+            // printf("%p\n", curr_user);
             free(curr_user); //free curr_user pointer
             curr_user = inter_user;
-            printf("%s\n", inter_user -> name);
+            // printf("%s\n", inter_user -> name);
+            break;
 
         }else{
-            inter_user = curr_user -> next;
-            int curr_frnd_idx = 0;
-            int found = 0;
-            User **user_friends = (curr_user -> friends);
-            for (int i=0; i<MAX_FRIENDS; i++){
-                //can be at the beginning, in between , or at the end
-                if (user_friends[curr_frnd_idx] == NULL){
-                    break;
-                }//there are no more users
-                if (strcmp(user_friends[curr_frnd_idx] -> name, name) == 0){
-                    //user found at this index. 
-                    found++;
-                }
-                if (found){//shift elements if found;
-                    if (curr_frnd_idx == MAX_FRIENDS - 1 || user_friends[curr_frnd_idx+1] == NULL){
-                        user_friends[curr_frnd_idx] = NULL; //terminate the list
-                        break; //exit loop as mo more modifications
-                    }else{ //there is a user next to it
-                        user_friends[curr_frnd_idx] = user_friends[curr_frnd_idx+1];
-                    }
-                }
-                curr_frnd_idx++;
-            }
             prev_user = curr_user;
-            curr_user = inter_user;
+            curr_user = curr_user -> next;
         }
     }
     return 0;

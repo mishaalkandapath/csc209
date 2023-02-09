@@ -179,7 +179,6 @@ int main(int argc, char* argv[]) {
     // deleting users.
     printf("Freeing all heap space.\n");
     while (user_list != NULL) {
-        printf("deleting user %s\n", user_list -> name);
         delete_user(user_list->name, &user_list);
     }
     return 0;
