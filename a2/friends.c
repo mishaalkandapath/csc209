@@ -16,25 +16,38 @@
 int create_user(const char *name, User **user_ptr_add) {
     User *new_user = malloc(sizeof(User));
     
+    // if (new_user == NULL){
+    //     printf("malloc failed");
+    // }
+    
     if (strlen(name) > MAX_NAME - 1){
         return 2;
     }
+
     strncpy(new_user -> name, name, strlen(name));
     (new_user -> name)[strlen(name)] = '\0';
+    (new_user -> profile_pic)[0] = '\0'; //setting to NULL if no pfp set for future use. 
 
     User *curr_user = *user_ptr_add; //pointer to first user in the list
     User *prev_user = NULL;
 
-
-    while((*curr_user) != NULL){
-        if (strcmp(curr_user -> name, name) == 0){
-            return 1;
+    if (curr_user == NULL){
+        *user_ptr_add = new_user;
+    }else{
+        while((curr_user) != NULL){
+            if (strcmp(curr_user -> name, name) == 0){
+                return 1;
+            }
+            prev_user = curr_user;
+            curr_user = (curr_user -> next);
         }
-        prev_user = curr_user;
-        curr_user = (curr_user -> next);
+        // no such user exists and we are clear to add
+        (prev_user -> next) = new_user;
     }
-    // no such user exists and we are clear to add
-    (prev_user -> next) = &new_user;
+    (new_user ->first_post) = NULL;
+    (new_user -> next) = NULL;
+    (new_user -> friends)[0] = NULL;
+    
     return 0;
 
 }
@@ -48,12 +61,12 @@ int create_user(const char *name, User **user_ptr_add) {
  * to satisfy the prototype without warnings.
  */
 User *find_user(const char *name, const User *head) {
-    User *curr_usr_ptr = head;
+    User *curr_usr_ptr = (User *) head;
     while (curr_usr_ptr != NULL){
         if (strcmp((curr_usr_ptr -> name), name) == 0){
             return curr_usr_ptr;
         }
-        curr_user_ptr = (curr_usr_ptr -> next);
+        curr_usr_ptr = (curr_usr_ptr -> next);
     }
     return NULL;
 }
@@ -64,10 +77,11 @@ User *find_user(const char *name, const User *head) {
  * Names should be printed to standard output, one per line.
  */
 void list_users(const User *curr) {
-    User *curr_usr_ptr = head;
+    User *curr_usr_ptr = (User *) curr;
+    printf("User List\n");
     while (curr_usr_ptr != NULL){
-        printf("%s\n", curr_usr_ptr -> name);
-        curr_user_ptr = (curr_usr_ptr -> next);
+        printf("\t%s\n", curr_usr_ptr -> name);
+        curr_usr_ptr = (curr_usr_ptr -> next);
     }
 }
 
@@ -89,7 +103,10 @@ int update_pic(User *user, const char *filename) {
         if (pfp_file == NULL){
             return 1;
         }
-        (user -> profile_pic) = filename;
+        for (int i = 0; i<strlen(filename); i++){
+            (user -> profile_pic)[i] = filename[i];
+        }
+        (user ->profile_pic)[strlen(filename)] = '\0';
         return 0;
     }
 }
@@ -114,42 +131,47 @@ int update_pic(User *user, const char *filename) {
  */
 int make_friends(const char *name1, const char *name2, User *head) {
     if (strcmp(name1, name2) == 0){
-        return 3
+        return 3;
     } //checking if the name passed is the same
-    User *user1 = NULL;
-    User *user2 = NULL;
+    User *user1 = find_user(name1, head);
+    User *user2 = find_user(name2, head);
 
-    while(head != NULL){
-        if (strcmp((head -> name), name1) == 0){
-            user1 = head;
-        }else if (strcmp((head -> name), name2) == 0){
-            user2 = head;
-        }
-    }
     if (user1 == NULL || user2 == NULL){
         return 4;
     }//checked if each user was found
 
-    User *curr_users_1 = (user1 -> friends);
-    User *curr_users_2 = (user2 -> friends);
-     User *prev_users_1 = NULL;
-    User *prev_users_2 = NULL;
+    User *curr_users_1 = (user1 -> friends)[0];
+    User *curr_users_2 = (user2 -> friends)[0];
     int count1 = 0;
     int count2 = 0;
 
-    while (curr_users_1 != NULL){
+    while (curr_users_1 != NULL && count1 < MAX_FRIENDS-1){
         if (strcmp(curr_users_1 -> name, name2) == 0){
             return 1;
         }
-        curr_users_1 = (curr_users_1 -> next);
+        count1++;
+        curr_users_1 = (user1 -> friends)[count1];
+        
+    }
+
+    if (curr_users_1 != NULL && strcmp(curr_users_1 -> name, name2) == 0){
+        return 1; // if the list hasnt terminated yet and the last element is the new friend
+    }else{// the list contains max elements already
         count1++;
     }
 
-    while (curr_users_2 != NULL){
+    while (curr_users_2 != NULL && count2 < MAX_FRIENDS -1){
         if (strcmp(curr_users_2 -> name, name1) == 0){
             return 1;
         }
-        curr_users_2 = (curr_users_2 -> next);
+        count2++;
+        curr_users_2 = (user2 -> friends)[count2];
+        
+    }
+
+    if (curr_users_2 != NULL && strcmp(curr_users_2 -> name, name1) == 0){
+        return 1; // if the list hasnt terminated yet and the last element is the new friend
+    }else{// the list contains max elements already
         count2++;
     }
 
@@ -157,13 +179,20 @@ int make_friends(const char *name1, const char *name2, User *head) {
         return 2;
     }
 
-    (prev_users_1 -> next) = user2;
-    (prev_users_2 -> next) = user1;
+    ((user1 -> friends)[count1 - 1]) = user2;
+    ((user2 -> friends)[count2 - 1]) = user1; //add elements to corresponding indices
+    count1++;
+    count2++;\
+
+    //if the list of friends hasnt filled up yet, termninate it at the terminate point
+    if (count1 != MAX_FRIENDS){
+        ((user1 -> friends)[count1 - 1]) = NULL;
+    }
+     if (count2 != MAX_FRIENDS){
+        ((user2-> friends)[count2 - 1]) = NULL;
+    }
 
     return 0;
-
-
-
 
 }
 
@@ -177,7 +206,64 @@ int make_friends(const char *name1, const char *name2, User *head) {
  *   - 1 if the user is NULL.
  */
 int print_user(const User *user) {
-    return -1;
+    if (user == NULL){
+        return 1;
+    }
+    //print the profile pic if its exists
+    if ((user -> profile_pic)[0] != '\0'){
+        FILE *pfp = fopen((user -> profile_pic), "rb");
+        char c = fgetc(pfp);
+        while (c != EOF){
+            printf ("%c", c);
+            c = fgetc(pfp);
+        }
+        fclose(pfp);
+        printf("\n");
+    }
+
+    printf("Name: %s", (user -> name));
+    printf("\n------------------------------------------\n");
+    printf("Friends: \n");
+    User *curr_frend = (User *) (user -> friends)[0];
+    int count = 0;
+    while (curr_frend != NULL && count < MAX_FRIENDS - 1){
+        printf("%s\n", (curr_frend -> name));
+        count++;
+        curr_frend = (User *) (user -> friends)[count];
+    }
+    if (curr_frend != NULL){
+        printf("%s\n", (((User *) (user -> friends)[count]) -> name));
+    }
+    printf("------------------------------------------\n");
+    printf("Posts:\n");
+    Post *curr_post = (user -> first_post);
+    
+    int hours, minutes, seconds, day, month, year, weekday;
+    char *months[12] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    char *days[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+
+    while (curr_post != NULL){
+        printf("From: %s\n", curr_post -> author);
+
+        struct tm *local = localtime((curr_post -> date));
+
+        day = local ->tm_mday;
+        weekday = local -> tm_wday;
+        month = local -> tm_mon;
+        year = local -> tm_year + 1900;
+        hours = local -> tm_hour;
+        minutes = local -> tm_min;
+        seconds = local -> tm_sec;
+
+        printf("Date: %s %s %d %02d:%02d:%02d %d\n\n", days[weekday],months[month],day, hours, minutes, seconds, year);
+        printf("%s\n\n", curr_post -> contents);
+        printf("==\n\n");
+        curr_post = curr_post -> next;
+    }
+
+    printf("------------------------------------------\n");
+
+    return 0;
 }
 
 
@@ -196,7 +282,63 @@ int print_user(const User *user) {
  *   - 2 if either User pointer is NULL
  */
 int make_post(const User *author, User *target, char *contents) {
-    return -1;
+    if (author == NULL || target == NULL){
+        return 2;
+    }
+    User *curr_user = (((User *) author) -> friends)[0];
+    int not_found = 1;
+    int count = 0;
+    while (curr_user != NULL && count < MAX_FRIENDS - 1){
+        if ((*curr_user).name  == (*target).name){
+            not_found = 0;
+            break;
+        }
+        count++;
+        curr_user = (((User *) author) -> friends)[count];
+    }
+
+    if (curr_user != NULL){
+        curr_user = (((User *) author) -> friends)[count];
+        if ((*curr_user).name  == (*target).name){
+            not_found = 0;
+        }//checking if the leftover user is a friend
+        count++;
+    }
+
+    if (not_found){
+        return 1;
+    }
+
+    Post *new_post = malloc(sizeof(Post)); //create a new post pointer in heap space
+    //copy in the author name:
+    strncpy((new_post -> author), (author -> name), strlen(author -> name));
+    (new_post -> author)[strlen(author -> name)] = '\0';
+
+    (new_post -> contents) = malloc(sizeof(char)*(strlen(contents)+1));
+    strncpy((new_post -> contents), contents, strlen(contents));
+    (new_post -> contents)[strlen(contents)] = '\0';//alocate space for a post and copy the post in 
+
+    time_t *now_time = malloc(sizeof(time_t));
+    *now_time = time(NULL);
+
+    (new_post -> date) = now_time;
+
+    if (target -> first_post == NULL){ //no posts for this user yet
+        User *mainuser = (User *) target;
+        (mainuser -> first_post) = new_post;
+        new_post -> next = NULL;
+    }else{
+        Post *curr_node = new_post;
+        Post *prev_node = (target -> first_post);
+        while(prev_node != NULL){
+            (curr_node -> next) = prev_node;
+            prev_node = (prev_node -> next);
+        }
+        User *mainuser = (User *) target;
+        (mainuser -> first_post) = new_post;
+    }
+    return 0;
+    
 }
 
 
@@ -210,5 +352,56 @@ int make_post(const User *author, User *target, char *contents) {
  *   - 1 if a user with this name does not exist.
  */
 int delete_user(const char *name, User **user_ptr_del) {
-    return -1;
+    User *curr_user = *user_ptr_del;
+    User *prev_user = NULL;
+    if (find_user(name, curr_user) == NULL){
+        return 1;
+    }
+    //go through all users and remove friends where necessary
+    while (curr_user != NULL){
+        if (strcmp(curr_user -> name, name) == 0){
+            if (prev_user == NULL){
+                *user_ptr_del = curr_user -> next;
+            }else{
+                prev_user -> next = curr_user -> next;
+            }//delete accordingly on position at list
+            //releasing memory in order:
+            //first go through all the posts and clear their memory;
+            Post * curr_post = curr_user -> first_post;
+            while (curr_post != NULL){
+                free(curr_post -> date);
+                free(curr_post -> contents);
+                free(curr_post);
+                curr_post = curr_post -> next;
+            }//freed all posts;
+            free(curr_user); //free curr_user pointer
+
+        }else{
+            int curr_frnd_idx = 0;
+            int found = 0;
+            User **user_friends = (curr_user -> friends);
+            for (int i=0; i<MAX_FRIENDS; i++){
+                //can be at the beginning, in between , or at the end
+                if (user_friends[curr_frnd_idx] == NULL){
+                    break;
+                }//there are no more users
+                if (strcmp(user_friends[curr_frnd_idx] -> name, name) == 0){
+                    //user found at this index. 
+                    found++;
+                }
+                if (found){//shift elements if found;
+                    if (curr_frnd_idx == MAX_FRIENDS - 1 || user_friends[curr_frnd_idx+1] == NULL){
+                        user_friends[curr_frnd_idx] = NULL; //terminate the list
+                        break; //exit loop as mo more modifications
+                    }else{ //there is a user next to it
+                        user_friends[curr_frnd_idx] = user_friends[curr_frnd_idx+1];
+                    }
+                }
+                curr_frnd_idx++;
+            }
+        }
+        prev_user = curr_user;
+        curr_user = curr_user -> next;
+    }
+    return 0;
 }
