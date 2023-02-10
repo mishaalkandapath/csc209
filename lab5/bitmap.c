@@ -37,12 +37,7 @@ struct pixel **read_pixel_array(FILE *image, int pixel_array_offset, int width, 
     for (int i=0; i < height; i++){
         pixel_array[i] = malloc(sizeof(struct pixel)*width);
         for (int j = 0; j<width; j++){
-            struct pixel* onepixel = malloc(sizeof(struct pixel));
-            fread((&(onepixel -> blue)), 1, 1, image);
-            fread((&(onepixel -> green)), 1, 1, image);
-            fread((&(onepixel -> red)), 1, 1, image);
-            pixel_array[i][j] = *onepixel;
-            free(onepixel);
+            fread(&(pixel_array[i][j]), 3, 1, image);
         }
     }
 
