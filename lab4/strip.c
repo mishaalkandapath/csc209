@@ -29,7 +29,7 @@
 int strip_q_marks(char *s){
     int length = strlen(s);
     int count = 0;
-    int last_idx = 0;
+    int last_idx = strlen(s);
     for (int i = length - 1; i >=0; i--){
         if (s[i] == '?'){
             last_idx = i;
@@ -38,7 +38,7 @@ int strip_q_marks(char *s){
             break;
         }
     }
-    s[last_idx] = '\0';
+    s[last_idx] = '\0'; //this doesnt work if i did not strip anything shet.
     return count;
 }
 
