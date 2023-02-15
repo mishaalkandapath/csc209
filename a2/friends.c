@@ -16,9 +16,9 @@
 int create_user(const char *name, User **user_ptr_add) {
     User *new_user = malloc(sizeof(User));
     
-    // if (new_user == NULL){
-    //     printf("malloc failed");
-    // }
+    if (new_user == NULL){
+        exit(-1);
+    }
     
     if (strlen(name) > MAX_NAME - 1){
         return 2;
@@ -131,15 +131,15 @@ int update_pic(User *user, const char *filename) {
  * NOTE: If multiple errors apply, return the *largest* error code that applies.
  */
 int make_friends(const char *name1, const char *name2, User *head) {
-    if (strcmp(name1, name2) == 0){
-        return 3;
-    } //checking if the name passed is the same
+
     User *user1 = find_user(name1, head);
     User *user2 = find_user(name2, head);
-
     if (user1 == NULL || user2 == NULL){
         return 4;
     }//checked if each user was found
+    else if (strcmp(name1, name2) == 0){
+        return 3;
+    } //checking if the name passed is the same
 
     User *curr_users_1 = (user1 -> friends)[0];
     User *curr_users_2 = (user2 -> friends)[0];
@@ -152,7 +152,6 @@ int make_friends(const char *name1, const char *name2, User *head) {
         }
         count1++;
         curr_users_1 = (user1 -> friends)[count1];
-        
     }
 
     if (curr_users_1 != NULL && strcmp(curr_users_1 -> name, name2) == 0){
@@ -215,7 +214,7 @@ int print_user(const User *user) {
         FILE *pfp = fopen((user -> profile_pic), "rb");
         char c = fgetc(pfp);
         while (c != EOF){
-            printf ("%c", c);
+            printf("%c", c);
             c = fgetc(pfp);
         }
         fclose(pfp);
