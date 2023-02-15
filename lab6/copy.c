@@ -14,6 +14,20 @@
 
 char *copy(char *dest, const char *src, int capacity) {
 
+    int term_bef = 0;
+
+    for (int i = 0; i < capacity - 1; i++){
+        if (src[i] == '\0'){
+            dest[i] = '\0';
+            term_bef = 1;
+            break;
+        }
+        dest[i] = src[i];
+    }
+    
+    if (!term_bef && capacity != 0){
+        dest[capacity-1] = '\0';
+    } //different ways of like weird strings, 0 size string, 1 index string but that 1 is a null character... test for all of that
 
     return dest;
 }
