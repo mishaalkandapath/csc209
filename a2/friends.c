@@ -146,50 +146,73 @@ int make_friends(const char *name1, const char *name2, User *head) {
     int count1 = 0;
     int count2 = 0;
 
-    while (curr_users_1 != NULL && count1 < MAX_FRIENDS-1){
+    while (curr_users_1 != NULL && count1 < MAX_FRIENDS){
         if (strcmp(curr_users_1 -> name, name2) == 0){
             return 1;
         }
         count1++;
-        curr_users_1 = (user1 -> friends)[count1];
+        if (count1 != MAX_FRIENDS){
+            curr_users_1 = (user1 -> friends)[count1];
+        }
+        
     }
 
-    if (curr_users_1 != NULL && strcmp(curr_users_1 -> name, name2) == 0){
-        return 1; // if the list hasnt terminated yet and the last element is the new friend
-    }else{// the list contains max elements already
-        count1++;
-    }
+    // if (curr_users_1 != NULL && strcmp(curr_users_1 -> name, name2) == 0){
+    //     return 1; // if the list hasnt terminated yet and the last element is the new friend
+    // }else{// the list contains max elements already
+    //     count1++;
+    // }
 
     while (curr_users_2 != NULL && count2 < MAX_FRIENDS -1){
+        printf("%d", count1);
         if (strcmp(curr_users_2 -> name, name1) == 0){
             return 1;
         }
         count2++;
-        curr_users_2 = (user2 -> friends)[count2];
-        
+        if (MAX_FRIENDS != count2){
+            curr_users_2 = (user2 -> friends)[count2];
+        }
     }
 
-    if (curr_users_2 != NULL && strcmp(curr_users_2 -> name, name1) == 0){
-        return 1; // if the list hasnt terminated yet and the last element is the new friend
-    }else{// the list contains max elements already
-        count2++;
-    }
+    // if (curr_users_2 != NULL && strcmp(curr_users_2 -> name, name1) == 0){
+    //     return 1; // if the list hasnt terminated yet and the last element is the new friend
+    // }else{// the list contains max elements already
+    //     count2++;
+    // }
 
     if (count1 >= MAX_FRIENDS || count2 >= MAX_FRIENDS){
         return 2;
     }
 
-    ((user1 -> friends)[count1 - 1]) = user2;
-    ((user2 -> friends)[count2 - 1]) = user1; //add elements to corresponding indices
-    count1++;
-    count2++;\
-
-    //if the list of friends hasnt filled up yet, termninate it at the terminate point
-    if (count1 != MAX_FRIENDS){
-        ((user1 -> friends)[count1 - 1]) = NULL;
+    if (count1 == 0){
+        ((user1 -> friends)[0]) = user2;
+        ((user1 -> friends)[1]) = NULL;
+        count1++;
+    }else{
+        ((user1 -> friends)[count1]) = user2;
+         count1++;
+         //if the list of friends hasnt filled up yet, termninate it at the terminate point
+        if (count1 != MAX_FRIENDS){
+            ((user1 -> friends)[count1]) = NULL;
+        }
+        if (count2 != MAX_FRIENDS){
+            ((user2-> friends)[count2]) = NULL;
+        }
     }
-     if (count2 != MAX_FRIENDS){
-        ((user2-> friends)[count2 - 1]) = NULL;
+    if (count2 == 0){
+        ((user2 -> friends)[0]) = user1;
+        ((user2 -> friends)[1]) = NULL;
+        count2++;
+    }else{
+        ((user2 -> friends)[count2]) = user1; //add elements to corresponding indices
+        count2++;\
+        //if the list of friends hasnt filled up yet, termninate it at the terminate point
+        if (count1 != MAX_FRIENDS){
+            ((user1 -> friends)[count1]) = NULL;
+        }
+        if (count2 != MAX_FRIENDS){
+            ((user2-> friends)[count2]) = NULL;
+        }
     }
 
     return 0;
