@@ -1,7 +1,7 @@
 #include <time.h>
 
 #define MAX_NAME 32     // Max username and profile_pic filename lengths
-#define MAX_FRIENDS 10  // Max number of friends a user can have
+#define MAX_FRIENDS 2  // Max number of friends a user can have
 
 typedef struct user {
     char name[MAX_NAME];

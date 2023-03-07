@@ -27,7 +27,7 @@ char *copy(char *dest, const char *src, int capacity) {
     
     if (!term_bef && capacity != 0){
         dest[capacity-1] = '\0';
-    } //different ways of like weird strings, 0 size string, 1 index string but that 1 is a null character... test for all of that
+    }
 
     return dest;
 }

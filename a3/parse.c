@@ -11,7 +11,93 @@
  */
 Rule *parse_file(FILE *fp) {
     // Implement this function and remove the stubbed return statement below.
-    return NULL;
+    char line[MAXLINE]; //store a line in the file
+    Rule *curr_rule = NULL; //the last created rule, guaranteed to be intialized. 
+    Rule *head = NULL;//the first created rule, guaranteed to be initialized
+    Action *curr_action = NULL; //last created action
+
+    while(fgets(line, MAXLINE, fp) != NULL){ //go through the file line by line
+        int curr_len = strlen(line); //the length of the current line
+        char curr_c;
+        int type = line_type(line);//0 if target line, 1 if action line, 2 if comment or empty lines
+        
+        //the type of line has been identified and it is a target line
+        if (type == 0){
+            //process a target line;
+            const char colon[2] = ':';
+            const char space[2] = ' ';
+            char *targets;
+
+            targets = strtok(line, ":");
+
+            if (curr_rule == NULL){
+                Rule *curr_rule = malloc(sizeof(Rule));
+                Rule *head = curr_rule;
+            }else{
+                Rule * new_rule = malloc(sizeof(Rule));
+                (curr_rule -> next_rule) = new_rule;
+                curr_rule = new_rule;
+            }
+
+            (curr_rule -> target) = malloc(sizeof(char) * (strlen(targets) + 1)); 
+            strncpy(curr_rule -> target, targets, sizeof(char) * (strlen(targets) + 1));
+            (curr_rule -> target)[strlen(curr_rule -> target)] = '\0';
+
+        }else if (type == 1){
+            Action *action = malloc(sizeof(Action));
+
+            if (action == NULL){
+                curr_rule -> actions = action;
+            }else{
+                curr_action -> next_act = action;
+            }
+            curr_action = action;
+
+            int space_count = 0;
+            for (int j = 0; j < strlen(line); j++){
+                space_count += (line[j] == ' ');
+            }
+
+            char **all_words = malloc(sizeof(char *) * (space_count + 2)); //there are enuf words for the number of spaces + 1+ null
+            char *targets;
+            targets = strtok(line, " ");
+            int count = 0;
+            while(targets != NULL){
+                count++;
+                all_words[count - 1] = malloc(sizeof(char)*(strlen(targets) + 1));
+                strncpy(all_words[count - 1], targets, strlen(targets));
+                all_words[count - 1][strlen(targets)] = '\0';
+
+                targets = strtok(NULL, "  ");
+            }
+            //put in the last word and NULL
+            targets = strtok(NULL, "");
+            all_words[count] = malloc(sizeof(char)*(strlen(targets) + 1));
+            strncpy(all_words[count], targets, strlen(targets));
+            all_words[count][strlen(targets)] = '\0';
+            all_words[count + 1] = NULL;
+
+            curr_action -> args = all_words;
+        }
+    }
+
+    return head;
+}
+
+int line_type(char * line){
+    for (int i = 0; i < strlen(line); i++){
+        if (line[i] == ' '  || (line[i] == '\t' && i >=1) || line[i] == '#'){//if there is a space or if there is more than one tab or if there is a pound in the sentence
+            return 2;
+        }else if (line[i] == '\t' && i == 0){
+            continue;
+        }else if (i == 1 && line_type == 1){
+            //this is now an action line
+            return 1;
+        }else{
+            //this is a target line 
+            return 0;
+        }
+    }
 }
 
 
