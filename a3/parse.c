@@ -17,8 +17,6 @@ Rule *parse_file(FILE *fp) {
     Action *curr_action = NULL; //last created action
 
     while(fgets(line, MAXLINE, fp) != NULL){ //go through the file line by line
-        int curr_len = strlen(line); //the length of the current line
-        char curr_c;
         int type = line_type(line);//0 if target line, 1 if action line, 2 if comment or empty lines
         
         //the type of line has been identified and it is a target line
@@ -38,6 +36,7 @@ Rule *parse_file(FILE *fp) {
                 (curr_rule -> next_rule) = new_rule;
                 curr_rule = new_rule;
             }
+            curr_rule -> next_rule = NULL;
 
             (curr_rule -> target) = malloc(sizeof(char) * (strlen(targets) + 1)); 
             strncpy(curr_rule -> target, targets, sizeof(char) * (strlen(targets) + 1));
@@ -52,6 +51,7 @@ Rule *parse_file(FILE *fp) {
                 curr_action -> next_act = action;
             }
             curr_action = action;
+            curr_action -> next_act = NULL;
 
             int space_count = 0;
             for (int j = 0; j < strlen(line); j++){
@@ -81,7 +81,70 @@ Rule *parse_file(FILE *fp) {
         }
     }
 
+    fseek(fp, 0, SEEK_SET); //resetting and starting from the top, matching targets;
+    
+    Rule* tail = curr_rule;
+    while(fgets(line, MAXLINE, fp) != NULL){
+        int type = line_type(line);//0 if target line, 1 if action line, 2 if comment or empty lines
+        if (type == 0){
+            char *targets;
+            targets = strtok(line, " ");
+            curr_rule = head;
+            Dependency * curr_dep = NULL;
+            while (targets != NULL){
+                targets = strtok(NULL, " " );
+                if (targets != NULL){
+                    link_dependencies(tail, curr_rule, targets, curr_dep);
+                }
+                targets = strtok(NULL, ""); // the last target;
+                link_dependencies(tail, curr_rule, targets, curr_dep);
+            }
+
+        }
+    }
+
+
     return head;
+}
+
+int link_dependencies(Rule * tail, Rule * curr_rule, char * targets, Dependency *curr_dep){
+    int linked = 0;
+    while (curr_rule != NULL){
+        if (strcmp(curr_rule -> target, targets)){
+            if (curr_dep == NULL){
+                curr_dep = malloc(sizeof(Dependency));
+            }else{
+                Dependency *new_dep = malloc(sizeof(Dependency));
+                curr_dep -> next_dep = new_dep;
+                curr_dep = new_dep;
+            }
+            curr_dep -> rule = curr_rule;
+            curr_dep -> next_dep = NULL;
+            linked++;
+            break;
+        }
+        curr_rule = curr_rule -> next_rule;
+    }
+    if (!linked){
+        if (curr_dep == NULL){
+            curr_dep = malloc(sizeof(Dependency));
+        }else{
+            Dependency *new_dep = malloc(sizeof(Dependency));
+            curr_dep -> next_dep = new_dep;
+            curr_dep = new_dep;
+        }
+        Rule * new_rule = malloc(sizeof(Rule));
+        char * target = malloc(sizeof(char *) * (strlen(targets) + 1));
+        strncpy(target, targets, strlen(targets));
+        target[strlen(targets)] = '\0';
+        new_rule -> target = target;
+        curr_dep -> rule = new_rule;
+        curr_dep -> next_dep = NULL;
+
+        tail -> next_rule = new_rule;
+        tail = new_rule;
+        tail -> next_rule = NULL;
+    }
 }
 
 int line_type(char * line){
