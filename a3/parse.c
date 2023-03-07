@@ -5,6 +5,57 @@
 #include "pmake.h"
 
 
+Rule * get_rule(Rule *curr_rule, char * target_name){
+    while (curr_rule != NULL){
+        printf("Searching %s\n", curr_rule -> target);
+        if (strcmp(curr_rule -> target, target_name)){
+            return curr_rule;
+        }
+        curr_rule = curr_rule -> next_rule;
+    }
+    return curr_rule;
+}
+
+void link_dependencies(char * targets, Dependency *curr_dependency, Rule *head){
+    
+    //set the dependency links, create rules if they dont exist:
+    Rule *dep_rule = get_rule(head, targets);
+    if (dep_rule == NULL){
+        dep_rule = malloc(sizeof(Rule));
+        dep_rule -> target = malloc(sizeof(char) * (strlen(targets) + 1));
+        strncpy(dep_rule -> target, targets, strlen(targets));
+        (dep_rule -> target)[strlen(targets)] = '\0';
+        dep_rule -> next_rule = NULL;
+    }
+
+    Dependency *new_dep = malloc(sizeof(Dependency));
+
+    if (curr_dependency != NULL){
+        curr_dependency ->  next_dep = new_dep;
+    }
+    curr_dependency = new_dep;
+    curr_dependency -> next_dep = NULL;
+
+    curr_dependency -> rule = dep_rule;
+}
+
+int line_type(char * line){
+    for (int i = 0; i < strlen(line); i++){
+        if (!((line[i] >= 'a' && line[i] <= 'z' )|| (line[i] >= 'A' && line[i] <= 'Z'))){//if there is a space or if there is more than one tab or if there is a pound in the sentence
+            return 2;
+        }else if (line[i] == '\t' && i == 0){
+            continue;
+        }else if (i == 1){
+            //this is now an action line
+            return 1;
+        }else{
+            //this is a target line 
+            return 0;
+        }
+    }
+    return 2; //undefined output, should never occur
+}
+
 /* Read from the open file fp, and create the linked data structure
    that represents the Makefile contained in the file.
    See the top of pmake.h for the specification of Makefile contents.
@@ -18,24 +69,30 @@ Rule *parse_file(FILE *fp) {
     Dependency *curr_dependency = NULL; //last created dependency
 
     while(fgets(line, MAXLINE, fp) != NULL){ //go through the file line by line
-        int type = line_type(line);//0 if target line, 1 if action line, 2 if comment or empty lines
+        int type;
+        type = line_type(line);//0 if target line, 1 if action line, 2 if comment or empty lines
+        // printf("%s", line);
         
         //the type of line has been identified and it is a target line
         if (type == 0){
             //process a target line;
-            const char colon[2] = ':';
-            const char space[2] = ' ';
             char *targets;
 
             //get the target name
             targets = strtok(line, ":");
+            targets[strlen(targets)] = '\0'; //cutting the space out
+            printf("%s \n", targets);
 
             //create the Rule datatype
-            if (curr_rule == NULL){
-                Rule *curr_rule = malloc(sizeof(Rule));
-                Rule *head = curr_rule;
+            if (head == NULL){
+                head = malloc(sizeof(Rule));
+                curr_rule = head;
             }else{
-                Rule * new_rule = malloc(sizeof(Rule));
+                Rule *head_cpy = head;
+                Rule * new_rule = get_rule(head_cpy, targets);
+                if (new_rule == NULL){
+                    new_rule = malloc(sizeof(Rule));
+                }
                 (curr_rule -> next_rule) = new_rule;
                 curr_rule = new_rule;
             }
@@ -43,25 +100,26 @@ Rule *parse_file(FILE *fp) {
 
             //set the name properly
             (curr_rule -> target) = malloc(sizeof(char) * (strlen(targets) + 1)); 
-            strncpy(curr_rule -> target, targets, sizeof(char) * (strlen(targets) + 1));
+            strncpy(curr_rule -> target, targets, sizeof(char) * (strlen(targets)));
             (curr_rule -> target)[strlen(curr_rule -> target)] = '\0';
 
             //link the dependencies
             while (targets != NULL){
                 targets = strtok(NULL, " ");
-                link_dependencies(targets, curr_dependency, head);
+                if (targets != NULL && !(strcmp(targets, "\n"))){
+                    // printf("newtar%ssdf", targets);
+                    Rule *head_cpy = head;
+                    link_dependencies(targets, curr_dependency, head_cpy);
+                }
             }
-            //link the last leftover dependency
-            targets = strtok(NULL, "");
-            link_dependencies(targets, curr_dependency, head);
-
-            //reset curr_dependency
+            //reset curr_dependency and action
             curr_dependency = NULL;
+            curr_action = NULL;
 
         }else if (type == 1){
             Action *action = malloc(sizeof(Action));
 
-            if (action == NULL){
+            if (curr_action == NULL){
                 curr_rule -> actions = action;
             }else{
                 curr_action -> next_act = action;
@@ -76,7 +134,7 @@ Rule *parse_file(FILE *fp) {
 
             char **all_words = malloc(sizeof(char *) * (space_count + 2)); //there are enuf words for the number of spaces + 1+ null
             char *targets;
-            targets = strtok(line, " ");
+            targets = strtok(line+1, " ");
             int count = 0;
             while(targets != NULL){
                 count++;
@@ -86,67 +144,12 @@ Rule *parse_file(FILE *fp) {
 
                 targets = strtok(NULL, "  ");
             }
-            //put in the last word and NULL
-            targets = strtok(NULL, "");
-            all_words[count] = malloc(sizeof(char)*(strlen(targets) + 1));
-            strncpy(all_words[count], targets, strlen(targets));
-            all_words[count][strlen(targets)] = '\0';
-            all_words[count + 1] = NULL;
+            all_words[count] = NULL;
 
             curr_action -> args = all_words;
         }
     }
-
     return head;
-}
-
-Rule * get_rule(Rule *curr_rule, char * target_name){
-    while (curr_rule != NULL){
-        if (strcmp(curr_rule -> target, target_name)){
-            return curr_rule;
-        }
-        curr_rule = curr_rule -> next_rule;
-    }
-    return curr_rule;
-}
-
-void link_dependencies(char * targets, Dependency *curr_dependency, Rule *head){
-    
-    //set the dependency links, create rules if they dont exist:
-    targets = strtok(NULL, " ");
-    Rule *dep_rule = get_rule(head, targets);
-    if (dep_rule == NULL){
-        dep_rule = malloc(sizeof(Rule));
-        dep_rule -> target = malloc(sizeof(char) * (strlen(targets) + 1));
-        strncpy(dep_rule -> target, targets, strlen(targets));
-        (dep_rule -> target)[strlen(targets)] = '\0';
-    }
-
-    Dependency *new_dep = malloc(sizeof(Dependency));
-
-    if (curr_dependency != NULL){
-        curr_dependency ->  next_dep = new_dep;
-    }
-    curr_dependency = new_dep;
-    new_dep -> next_dep = NULL;
-
-    new_dep -> rule = dep_rule;
-}
-
-int line_type(char * line){
-    for (int i = 0; i < strlen(line); i++){
-        if (line[i] == ' '  || (line[i] == '\t' && i >=1) || line[i] == '#'){//if there is a space or if there is more than one tab or if there is a pound in the sentence
-            return 2;
-        }else if (line[i] == '\t' && i == 0){
-            continue;
-        }else if (i == 1 && line_type == 1){
-            //this is now an action line
-            return 1;
-        }else{
-            //this is a target line 
-            return 0;
-        }
-    }
 }
 
 
@@ -181,9 +184,11 @@ void print_rules(Rule *rules){
     Rule *cur = rules;
 
     while (cur != NULL) {
+        printf("boooom %s\n", cur->target);
+        printf("hhhh %s\n", cur -> dependencies -> rule -> target);
         if (cur->dependencies || cur->actions) {
             // Print target
-            printf("%s : ", cur->target);
+            printf("%s yayyyy: ", cur->target);
 
             // Print dependencies
             Dependency *dep = cur->dependencies;
