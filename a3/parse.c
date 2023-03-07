@@ -15,6 +15,7 @@ Rule *parse_file(FILE *fp) {
     Rule *curr_rule = NULL; //the last created rule, guaranteed to be intialized. 
     Rule *head = NULL;//the first created rule, guaranteed to be initialized
     Action *curr_action = NULL; //last created action
+    Dependency *curr_dependency = NULL; //last created dependency
 
     while(fgets(line, MAXLINE, fp) != NULL){ //go through the file line by line
         int type = line_type(line);//0 if target line, 1 if action line, 2 if comment or empty lines
@@ -26,8 +27,10 @@ Rule *parse_file(FILE *fp) {
             const char space[2] = ' ';
             char *targets;
 
+            //get the target name
             targets = strtok(line, ":");
 
+            //create the Rule datatype
             if (curr_rule == NULL){
                 Rule *curr_rule = malloc(sizeof(Rule));
                 Rule *head = curr_rule;
@@ -38,9 +41,22 @@ Rule *parse_file(FILE *fp) {
             }
             curr_rule -> next_rule = NULL;
 
+            //set the name properly
             (curr_rule -> target) = malloc(sizeof(char) * (strlen(targets) + 1)); 
             strncpy(curr_rule -> target, targets, sizeof(char) * (strlen(targets) + 1));
             (curr_rule -> target)[strlen(curr_rule -> target)] = '\0';
+
+            //link the dependencies
+            while (targets != NULL){
+                targets = strtok(NULL, " ");
+                link_dependencies(targets, curr_dependency, head);
+            }
+            //link the last leftover dependency
+            targets = strtok(NULL, "");
+            link_dependencies(targets, curr_dependency, head);
+
+            //reset curr_dependency
+            curr_dependency = NULL;
 
         }else if (type == 1){
             Action *action = malloc(sizeof(Action));
@@ -81,70 +97,40 @@ Rule *parse_file(FILE *fp) {
         }
     }
 
-    fseek(fp, 0, SEEK_SET); //resetting and starting from the top, matching targets;
-    
-    Rule* tail = curr_rule;
-    while(fgets(line, MAXLINE, fp) != NULL){
-        int type = line_type(line);//0 if target line, 1 if action line, 2 if comment or empty lines
-        if (type == 0){
-            char *targets;
-            targets = strtok(line, " ");
-            curr_rule = head;
-            Dependency * curr_dep = NULL;
-            while (targets != NULL){
-                targets = strtok(NULL, " " );
-                if (targets != NULL){
-                    link_dependencies(tail, curr_rule, targets, curr_dep);
-                }
-                targets = strtok(NULL, ""); // the last target;
-                link_dependencies(tail, curr_rule, targets, curr_dep);
-            }
-
-        }
-    }
-
-
     return head;
 }
 
-int link_dependencies(Rule * tail, Rule * curr_rule, char * targets, Dependency *curr_dep){
-    int linked = 0;
+Rule * get_rule(Rule *curr_rule, char * target_name){
     while (curr_rule != NULL){
-        if (strcmp(curr_rule -> target, targets)){
-            if (curr_dep == NULL){
-                curr_dep = malloc(sizeof(Dependency));
-            }else{
-                Dependency *new_dep = malloc(sizeof(Dependency));
-                curr_dep -> next_dep = new_dep;
-                curr_dep = new_dep;
-            }
-            curr_dep -> rule = curr_rule;
-            curr_dep -> next_dep = NULL;
-            linked++;
-            break;
+        if (strcmp(curr_rule -> target, target_name)){
+            return curr_rule;
         }
         curr_rule = curr_rule -> next_rule;
     }
-    if (!linked){
-        if (curr_dep == NULL){
-            curr_dep = malloc(sizeof(Dependency));
-        }else{
-            Dependency *new_dep = malloc(sizeof(Dependency));
-            curr_dep -> next_dep = new_dep;
-            curr_dep = new_dep;
-        }
-        Rule * new_rule = malloc(sizeof(Rule));
-        char * target = malloc(sizeof(char *) * (strlen(targets) + 1));
-        strncpy(target, targets, strlen(targets));
-        target[strlen(targets)] = '\0';
-        new_rule -> target = target;
-        curr_dep -> rule = new_rule;
-        curr_dep -> next_dep = NULL;
+    return curr_rule;
+}
 
-        tail -> next_rule = new_rule;
-        tail = new_rule;
-        tail -> next_rule = NULL;
+void link_dependencies(char * targets, Dependency *curr_dependency, Rule *head){
+    
+    //set the dependency links, create rules if they dont exist:
+    targets = strtok(NULL, " ");
+    Rule *dep_rule = get_rule(head, targets);
+    if (dep_rule == NULL){
+        dep_rule = malloc(sizeof(Rule));
+        dep_rule -> target = malloc(sizeof(char) * (strlen(targets) + 1));
+        strncpy(dep_rule -> target, targets, strlen(targets));
+        (dep_rule -> target)[strlen(targets)] = '\0';
     }
+
+    Dependency *new_dep = malloc(sizeof(Dependency));
+
+    if (curr_dependency != NULL){
+        curr_dependency ->  next_dep = new_dep;
+    }
+    curr_dependency = new_dep;
+    new_dep -> next_dep = NULL;
+
+    new_dep -> rule = dep_rule;
 }
 
 int line_type(char * line){
