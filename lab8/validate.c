@@ -89,6 +89,7 @@ int main(void){
     strncat(userid, ":", MAXLINE - strlen(userid) - 1);
     user_length = strlen(userid);
     strncat(userid, password, MAXLINE - strlen(userid) - 1);
+    printf("sdfsdsd %s\n", userid);
 
     FILE *fp = fopen(PASSWORD_FILE, "r");
     if(!fp) {
