@@ -42,6 +42,7 @@ int main(void) {
     close(fd[1]); //close the write end;
     dup2(fd[0], STDIN_FILENO); //make the stdin to be the stdout of the 
     execl("./validate", "validate", NULL);
+    close(fd[0]);
   }else{
     close(fd[0]); //close the read end
     if (strlen(user_id) > 10){
@@ -63,6 +64,7 @@ int main(void) {
 
     write(fd[1], user_id, 10);
     write(fd[1], password, 10);
+    close(fd[1]); //done writing
     int status;
     wait(&status);
     if (WIFEXITED(status)){
