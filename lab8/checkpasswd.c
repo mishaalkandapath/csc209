@@ -30,11 +30,27 @@ int main(void) {
       perror("fgets");
       exit(1);
   }
-  
-  // TODO
+  if (strlen(user_id) > 10){
+      printf(NO_USER);
+      return 0;
+  }else if (strlen(user_id) < 10){
+    for (int i = strlen(user_id); i<10; i++){
+      user_id[i] = '\0';
+    }
+  }
+  if (strlen(password) > 10){
+    printf(INVALID);
+    return 0;
+  }else if(strlen(password) < 10){
+    for (int i = strlen(password); i<10; i++){
+      password[i] = '\0';
+    }
+  }
+
   int fd[2];
   pipe(fd);
   int result = fork();
+  
   if (result <0){
     perror("fork");
     exit(-1);
@@ -45,23 +61,6 @@ int main(void) {
     close(fd[0]);
   }else{
     close(fd[0]); //close the read end
-    if (strlen(user_id) > 10){
-      printf(NO_USER);
-      return 0;
-    }else if (strlen(user_id) < 10){
-      for (int i = strlen(user_id); i<10; i++){
-        user_id[i] = '\0';
-      }
-    }
-    if (strlen(password) > 10){
-      printf(INVALID);
-      return 0;
-    }else if(strlen(password) < 10){
-      for (int i = strlen(password); i<10; i++){
-        password[i] = '\0';
-      }
-    }
-
     write(fd[1], user_id, 10);
     write(fd[1], password, 10);
     close(fd[1]); //done writing
@@ -69,12 +68,11 @@ int main(void) {
     wait(&status);
     if (WIFEXITED(status)){
       status = WEXITSTATUS(status);
-      switch (status){
-      case 0:
+      if (status == 0){
         printf(SUCCESS);
-      case 2:
+      }else if (status == 2){
         printf(INVALID);
-      case 3:
+      }else if (status == 3){
         printf(NO_USER);
       }
     }
