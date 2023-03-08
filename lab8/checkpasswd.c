@@ -74,8 +74,6 @@ int main(void) {
         printf(INVALID);
       case 3:
         printf(NO_USER);
-      case 1:
-        exit(1);
       }
     }
   }
