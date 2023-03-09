@@ -19,15 +19,16 @@ void remove_character_return(char *line){
     line[len] = '\0';
 }
 
-Rule * get_rule(Rule *curr_rule, char * target_name){
+Rule * get_rule(Rule *head, char * target_name){
+    Rule *curr_rule = head;
     while (curr_rule != NULL){
-        // printf("Searching %s\n", curr_rule -> target);
-        if (strcmp(curr_rule -> target, target_name)){
+        // printf("Searching %s %s\n", target_name, curr_rule -> target);
+        if (!strcmp(curr_rule -> target, target_name)){
             return curr_rule;
         }
         curr_rule = curr_rule -> next_rule;
     }
-    return curr_rule;
+    return NULL;
 }
 
 Rule * link_dependencies(char * targets, Dependency **curr_dependency, Rule *head, Rule *curr_node, Rule** tail_node){
