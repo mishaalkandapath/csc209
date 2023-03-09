@@ -11,29 +11,29 @@
 #include "pmake.h"
 
 void run_actions(Action* action){
-  int result = fork();
-  if (result < 0){
-    perror("fork");
-    exit(1);
-  }else if (result == 0){
-    while (action){
-      
+
+  while (action){
+    int result = fork();
+    if (result < 0){
+      perror("fork");
+      exit(1);
+    }else if (result == 0){
       char action_line[MAXLINE];
       args_to_string(action -> args, action_line, MAXLINE);
       printf("%s\n", action_line);
       execvp((action -> args)[0] ,action -> args);
+    }else{
+      int status;
+      status = wait(&status);
+      if (WIFEXITED(status)){
+        status = WEXITSTATUS(status);
+        if (status != 0){
+          exit(status);
+        }        
+      }
       action = action -> next_act;
     }
-  }else{
-    int status;
-    status = wait(&status);
-    if (WIFEXITED(status)){
-      status = WEXITSTATUS(status);
-      if (status != 0){
-        exit(status);
-      }        
     }
-  }
 }
 
   int evaluate_rules(Rule* rule, Rule* rules){
