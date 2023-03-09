@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
         print_rules(rules);
     }
 
-    // run_make(target, rules, parallel);
+    run_make(target, rules, parallel);
 
     return 0;
 }

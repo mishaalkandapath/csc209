@@ -4,12 +4,11 @@
 
 #include "pmake.h"
 
-
 void remove_character_return(char *line){
     int len = strlen(line);
     for (int i =0; i<len; i++){
         if (line[i] == 13){
-            for (int j = i; j < len - 1; j++) {
+            for (int j = i; j<len-1; j++) {
                 line[j] = line[j + 1];
             }
             len--;
@@ -20,16 +19,15 @@ void remove_character_return(char *line){
     line[len] = '\0';
 }
 
-Rule * get_rule(Rule *head, char * target_name){
-    Rule *curr_rule = head;
+Rule * get_rule(Rule *curr_rule, char * target_name){
     while (curr_rule != NULL){
-        // printf("Searching %s %s\n", target_name, curr_rule -> target);
-        if (!strcmp(curr_rule -> target, target_name)){
+        // printf("Searching %s\n", curr_rule -> target);
+        if (strcmp(curr_rule -> target, target_name)){
             return curr_rule;
         }
         curr_rule = curr_rule -> next_rule;
     }
-    return NULL;
+    return curr_rule;
 }
 
 Rule * link_dependencies(char * targets, Dependency **curr_dependency, Rule *head, Rule *curr_node, Rule** tail_node){
