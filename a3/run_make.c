@@ -10,23 +10,17 @@
 
 #include "pmake.h"
 
-void print_action(Action* action,int size){
-  for (int i = 0; i<size - 1; i++){
-    if (i != 0){
-      printf(" ");
-    }
-    printf("%s", (action -> args)[i]);
-  }
-}
-
 void run_actions(Action* action){
   int result = fork();
   if (result < 0){
     perror("fork");
     exit(1);
   }else if (result == 0){
-    while (action != NULL){
-      print_action(action, sizeof(action -> args));
+    while (action){
+      
+      char action_line[MAXLINE];
+      args_to_string(action -> args, action_line, MAXLINE);
+      printf("%s\n", action_line);
       execvp((action -> args)[0] ,action -> args);
       action = action -> next_act;
     }
@@ -43,7 +37,8 @@ void run_actions(Action* action){
 }
 
   int evaluate_rules(Rule* rule, Rule* rules){
-    printf("target here %s\n", rule -> target);
+    // printf("target here %s p1: %p p2: %p\n", rule -> target, rule->dependencies, rule->actions);
+
     if (rule -> dependencies == NULL && rule -> actions == NULL){
       //nothing to do here, return some random shet
       return 0;
@@ -53,30 +48,12 @@ void run_actions(Action* action){
       // this rule has dependencies
       Dependency *curr_dep = rule -> dependencies;
       int update_reqd = 0;
-      while (curr_dep == NULL){
-        int r = fork();
-        int pipefd[2];
-        pipe(pipefd);
-        //ERROR HANDLE
-        if (r < 0){
-          perror("fork");
-          exit(1);
-        }
-        else if (r == 0){
-          close(pipefd[0]); //am not reading
-          if (evaluate_rules(curr_dep -> rule, rules) == 0){
+      while (curr_dep != NULL){
+
+        if (evaluate_rules(curr_dep -> rule, rules) == 1){
             update_reqd = 1;
           }
-          write(pipefd[1], &update_reqd, sizeof(int));
-          close(pipefd[1]);
-        }else{
-          close(pipefd[1]); //not writing
-          int status = 0;
-          wait(&status); //ERROR HANDLE FOR EXIT STATUS
-          read(pipefd[0], &update_reqd, sizeof(int));
-          curr_dep = curr_dep -> next_dep;
-          close(pipefd[0]);
-        }
+        curr_dep = curr_dep -> next_dep;
       }
 
       if (update_reqd){
@@ -108,11 +85,8 @@ void run_actions(Action* action){
           curr_dep = rule -> dependencies;
           while(curr_dep != NULL){
             stat(curr_dep -> rule -> target, &stat_info);
-            if (errno == 2){
+            if (errno != 0){
               update_reqd = 1;
-            }else if (errno != 0){
-              perror(curr_dep -> rule -> target);
-              exit(1);
             }else{
               //modification time of the dependency file
               long dep_secs = ((stat_info.st_mtim).tv_sec);
