@@ -1,3 +1,10 @@
+/*
+ * Created on Sat Mar 11 2023
+ *
+ * Copyright (c) 2023 Mishaal Kandapath
+ * Staretd code not owned by Mishaal Kandapath
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -1,3 +1,10 @@
+/*
+ * Created on Sat Mar 11 2023
+ *
+ * Copyright (c) 2023 Mishaal Kandapath
+ * Starter code does not belong to Mishaal Kandapath
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
