@@ -17,6 +17,8 @@
 
 #include "pmake.h"
 
+extern Rule * get_rule(Rule *curr_rule, char * target_name);
+
 void run_actions(Action* action){
 
   while (action){
@@ -46,9 +48,10 @@ void run_actions(Action* action){
   int evaluate_rules(Rule* rule, int pflag){
 
     if (rule -> dependencies == NULL && rule -> actions == NULL){
-      //nothing to do here, return some random shet
+      //nothing to do here, simply return
       return 0;
     }else if (rule -> dependencies == NULL){
+      //no dependencies to check here, run all actions
       run_actions(rule -> actions);
     }else{
       // this rule has dependencies
