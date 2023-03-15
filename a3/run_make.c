@@ -61,9 +61,10 @@ helper method for evaluate_rules
 For this given rule, check if the current target does not exist, 
 or any of its dependencies do not exist, 
 or modification times of its dependencies more than its modification
-update_reqd is passed in from evaluate_rules
+return 1 if parent is outdated
+else return 0
 */
-void compare_mod_times(Rule * rule, int* update_reqd, struct stat *stat_info){
+int compare_mod_times(Rule * rule, struct stat *stat_info){
   //main target update_times:
   struct timespec stat_time = (*stat_info).st_mtim;
   long seconds = (*stat_info).st_mtim.tv_sec;
@@ -72,18 +73,19 @@ void compare_mod_times(Rule * rule, int* update_reqd, struct stat *stat_info){
   Dependency *curr_dep = rule -> dependencies;
   while(curr_dep){
     if (access(curr_dep -> rule -> target, F_OK) == -1){//file was not found
-      *update_reqd = 1;
+      return 1;
     }else{
       stat(curr_dep -> rule -> target, stat_info); //dependency mod times
       //modification time of the dependency file
       long dep_secs = ((*stat_info).st_mtim.tv_sec);
       long dep_nsecs = ((*stat_info).st_mtim.tv_nsec);
       if (dep_secs > seconds || (dep_secs == seconds && dep_nsecs >= nanosecs)){//dependency is newer
-        *update_reqd = 1;
+       return 1;
       }
     }
     curr_dep = curr_dep -> next_dep;
   }
+  return 0;
 }
 
 int evaluate_rules(Rule* rule, int pflag); //inserting this header here. main function to evaluate rules of a target
@@ -92,31 +94,18 @@ int evaluate_rules(Rule* rule, int pflag); //inserting this header here. main fu
 Helper method for evaluate_rules
 go through all the dependencies, and recursively (indirect) call evaluate_rule
 */
-void eval_dependencies(Dependency * curr_dep, int pflag, int *children, int* update_reqd, int* forked){
-  //create a pipe if needed, else create a placeholder pipe
-  int nos_pipes = (*children && pflag) ? *children : 1; //since 0 size arrays are not permitted
-  int pipfd[nos_pipes][2];
+void eval_dependencies(Dependency * curr_dep, int pflag, int* forked, int* children){
 
   while (curr_dep){// run until 
-    if (pflag && forked){
-      pipe(pipfd[*children]); //pass in the right file directories
-      close(pipfd[*children][1]); //they dont need to write. 
+    if (pflag && forked){ 
       //create child if necessary 
       *forked = pflag ? fork() : 0;
-      *children += pflag ? 1 : 0;
     }
 
-    if (!(*forked) || !pflag){
-      *update_reqd = evaluate_rules(curr_dep -> rule, pflag);
+    if (!(*forked) || !pflag){//if in child process or we are not parallelizing
+      evaluate_rules(curr_dep -> rule, pflag);
       if (!(*forked)){
-        close(pipfd[*children - 1][0]);// children are not reading
-        //close before forks reading ends
-        for (int j = 0; j < *children -1 ; j++){
-          close(pipfd[j][0]);
-        }
-        write(pipfd[*children - 1][1], update_reqd, sizeof(int)); //write value of update_reqd to pipe
-        close(pipfd[*children - 1][1]); //close the write end
-        break; //one dependency per child policy
+        break; //one dependency per child;
       }
     }
 
@@ -125,14 +114,16 @@ void eval_dependencies(Dependency * curr_dep, int pflag, int *children, int* upd
     }
   }
 
-  if (children && pflag && forked){ // if parallelizing and there are children to read from
-    int temp_upg = 0;
+  if (pflag && forked){ // if parallelizing and there are children to read from
     for (int i = 0; i < *children; i++){
       int status;
       wait(&status); // wait for each child.
-      read(pipfd[i][0], &temp_upg, sizeof(int)); //read an integer
-      close(pipfd[i][0]); //close the reading pipe end
-      *update_reqd += temp_upg; //update update_reqd
+      if (WIFEXITED(status)){//if child exited with a status
+        status = WEXITSTATUS(status); //get the value
+        if (status != 0){
+          exit(status); //exit if non-zero value with the specified value. 
+        }        
+      }
     }
   }
 }
@@ -141,12 +132,9 @@ void eval_dependencies(Dependency * curr_dep, int pflag, int *children, int* upd
 Evaluate all the rules of this current rule @rule recursively.
 If @pflag is 1, then each rule is recursed into by a new child process. 
 The function returns:
-0, if no updates are to be made
-1, if updated are to be made
--1, for parallel mode, a return for the sake of return 
+-1 return to finish program
 */
 int evaluate_rules(Rule* rule, int pflag){
-
   if (rule -> dependencies == NULL){
     //no dependencies to check here, run all actions
     run_actions(rule -> actions);
@@ -154,7 +142,6 @@ int evaluate_rules(Rule* rule, int pflag){
   }else{
     // this rule has dependencies
     Dependency *curr_dep = rule -> dependencies;
-    int update_reqd = 0; //whether this rule will require a run or not
     int forked = 1; // non-zero initialization to signify parent process
     int children = 0; //number of dependencies
 
@@ -164,38 +151,31 @@ int evaluate_rules(Rule* rule, int pflag){
     }
     //resetting to the head of the dependency list
     curr_dep = rule -> dependencies;
-    children = 0;
 
-    eval_dependencies(curr_dep, pflag, &children, &update_reqd, &forked); //evaluate all the dependencies as reqd
+    eval_dependencies(curr_dep, pflag, &forked, &children); //evaluate all the dependencies as reqd 
 
     if (!forked){
       return -1; //end the program if in a child forked process...
     }
 
     Action *curr_action = rule -> actions; //first action in rule
-    if (update_reqd >= 1 && curr_action){ //pflag situation with clear requirement for updation
-      //evaluate all the actions, if any
-      run_actions(curr_action);
+    //checking creation times;
+    struct stat stat_info;
+    if (access(rule ->target, F_OK) == -1 && curr_action){
+      //no such file, file needs to be created
+      run_actions(curr_action); //run actions to create file
       return 1;
-    }else if (update_reqd == 0){ //no dependencies needed to be updated
-      //checking creation times;
-      struct stat stat_info;
-      if (access(rule ->target, F_OK) == -1 && curr_action){
-        //no such file, file needs to be created
-        run_actions(curr_action); //run actions to create file
-        return 1;
-      }else if (curr_action){
-        stat(rule -> target, &stat_info);
-        compare_mod_times(rule, &update_reqd, &stat_info); //compare the modification times of target and dependencies
-        if (update_reqd){
-          run_actions(curr_action); //run actions if required.
-        }
-        return update_reqd;
-      }else{
-        //unknown error occurred
-        perror(rule -> target);
-        exit(1);
+    }else if (curr_action){
+      stat(rule -> target, &stat_info);
+      int update_reqd = compare_mod_times(rule, &stat_info); //compare the modification times of target and dependencies
+      if (update_reqd){
+        run_actions(curr_action); //run actions if required.
       }
+      return update_reqd;
+    }else{
+      //unknown error occurred
+      perror(rule -> target);
+      exit(1);
     } 
   }
 
