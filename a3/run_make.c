@@ -12,7 +12,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
-
 #include "pmake.h"
  
 extern Rule * get_rule(Rule *curr_rule, char * target_name);// externally defined function to get a rule of a certain name
