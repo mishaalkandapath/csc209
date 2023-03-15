@@ -80,29 +80,6 @@ void link_dependencies(char * targets, Dependency **curr_dependency, Rule *head,
     (*curr_dependency) -> rule = dep_rule; //set the rule of this dependency to be the rule found or created
 }
 
-/*
-Function to class between a rule line, action line, and other unrelated lines
-returns 0 if it is a target line
-returns 1 if action line
-returns 2 otherwise
-*/
-int line_type(char * line){
-    for (int i = 0; i < strlen(line); i++){ //for each char
-        if ((!((line[i] >= 'a' && line[i] <= 'z' )|| (line[i] >= 'A' && line[i] <= 'Z'))) && !(line[i] == '\t' && i == 0)){//if there is a space or if there is more than one tab or if there is a pound in the sentence
-            return 2;
-        }else if (line[i] == '\t' && i == 0){
-            continue;
-        }else if (i == 1){
-            //this is now an action line
-            return 1;
-        }else{
-            //this is a target line 
-            return 0;
-        }
-    }
-    return 2; //undefined case, should never occur
-}
-
 /* Read from the open file fp, and create the linked data structure
    that represents the Makefile contained in the file.
    See the top of pmake.h for the specification of Makefile contents.
@@ -117,9 +94,15 @@ Rule *parse_file(FILE *fp) {
     Dependency *curr_dependency = NULL; //last created dependency
 
     while(fgets(line, MAXLINE, fp) != NULL){ //go through the file line by line
-        int type = line_type(line); //get the type of the line
         line[strlen(line) - 1] = '\0'; //remove the newline character
-        remove_character_return(line);
+        remove_character_return(line); //remove any character return
+        int type = is_comment_or_empty(line) ?  2 : 0;//get the type of the line
+        
+        //determine whether action or rule line
+        if (type == 0){ //this line is not a comment or empty line
+            type = line[0] != '\t' ? 0 : 1; //if the first character is not a tab it is a rule line
+            // 0 if its a rule line, 1 if it is an action line
+        }
 
         if (type == 0){// it is a rule line:
             char *targets; //where all the tokens will be filled
