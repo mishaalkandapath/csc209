@@ -12,8 +12,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
-#include <time.h>
-#include <errno.h>
 
 #include "pmake.h"
  
@@ -74,10 +72,10 @@ void compare_mod_times(Rule * rule, int* update_reqd, struct stat *stat_info){
   //check the dependencies:
   Dependency *curr_dep = rule -> dependencies;
   while(curr_dep){
-    stat(curr_dep -> rule -> target, stat_info); //dependency mod times
-    if (errno != 0){//file was not found
+    if (access(curr_dep -> rule -> target, F_OK) == -1){//file was not found
       *update_reqd = 1;
     }else{
+      stat(curr_dep -> rule -> target, stat_info); //dependency mod times
       //modification time of the dependency file
       long dep_secs = ((*stat_info).st_mtim.tv_sec);
       long dep_nsecs = ((*stat_info).st_mtim.tv_nsec);
@@ -183,12 +181,12 @@ int evaluate_rules(Rule* rule, int pflag){
     }else if (update_reqd == 0){ //no dependencies needed to be updated
       //checking creation times;
       struct stat stat_info;
-      stat(rule -> target, &stat_info);
-      if (errno != 0 && curr_action){
+      if (access(rule ->target, F_OK) == -1 && curr_action){
         //no such file, file needs to be created
         run_actions(curr_action); //run actions to create file
         return 1;
-      }else if (errno == 0 && curr_action){
+      }else if (curr_action){
+        stat(rule -> target, &stat_info);
         compare_mod_times(rule, &update_reqd, &stat_info); //compare the modification times of target and dependencies
         if (update_reqd){
           run_actions(curr_action); //run actions if required.

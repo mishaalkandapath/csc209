@@ -20,10 +20,12 @@ int main(int argc, char **argv) {
     }
 
     // TODO: complete this program according its description above.
-
-
-
-
+    int rand_no;
+    for (int i = 0; i < 100; i++){
+        rand_no = (int) (((double) random()/RAND_MAX) * 100);
+        fwrite(&rand_no, sizeof(int), 1, fp);
+    }
+    
 
     fclose(fp);
     return 0;
