@@ -68,16 +68,18 @@ int main() {
                 // You want to move the stuff after the full line to the beginning
                 // of the buffer.  A loop can do it, or you can use memmove.
                 // memmove(destination, source, number_of_bytes)
-                memmove(buf, buf + where, inbuf - strlen(buf));
-                for (int i = inbuf - strlen(buf); i < BUFSIZE; i++){
+                inbuf = inbuf - where;
+                memmove(buf, buf + where, inbuf);
+                for (int i = inbuf; i < BUFSIZE; i++){
                     buf[i] = '\0';
                 }
-                inbuf = inbuf - strlen(buf);
+                // printf("bereere %s %d ", buf, inbuf);
 
             }
             // Step 5: update after and room, in preparation for the next read.
             after = buf + inbuf;
             room = BUFSIZE - inbuf;
+            // printf("%d %d ", room, inbuf);
 
 
         }
@@ -101,9 +103,9 @@ int main() {
 int find_network_newline(const char *buf, int n) {
     char * end_ptr = strstr(buf, "\r\n");
     if(end_ptr){
-        printf("%ld %d\n", (end_ptr - buf), n);
+        // printf("%ld %d\n", (end_ptr - buf), n);
         if ((end_ptr - buf) < n){
-            printf("%ld\n", (end_ptr - buf) + 1);
+            // printf("%ld\n", (end_ptr - buf) + 1);
             return (end_ptr - buf) + 2;
         }
     }
