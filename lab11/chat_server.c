@@ -73,13 +73,23 @@ int read_from(int client_index, struct sockname *users) {
      */
     int num_read = read(fd, &buf, BUF_SIZE);
     buf[num_read] = '\0';
-    if (users[client_index].username == NULL){
+    if (users[client_index].username == NULL && num_read != 0){
         //need to read in a username:
-        users[client_index].username = malloc(sizeof(BUF_SIZE + 1));
-        strncpy(users[client_index].username, buf, BUF_SIZE+1); //copies in the null terminator too so alls good
+        users[client_index].username = malloc(num_read + 1);
+        strncpy(users[client_index].username, buf, num_read+1); //copies in the null terminator too so alls good
     }else if (num_read == 0 || write(fd, buf, strlen(buf)) != strlen(buf)) {
         users[client_index].sock_fd = -1;
         return fd;
+    }else{
+        //write to all other clients:
+        int user_index = 0;
+        while (user_index < MAX_CONNECTIONS) {
+            if (users[user_index].sock_fd != -1 && users[user_index].sock_fd != users[client_index].sock_fd){
+                //this is an active connection and not the same connection
+                write(users[user_index].sock_fd, buf, strlen(buf)); //write to all other clients
+            }
+            user_index++;
+        }
     }
 
     return 0;

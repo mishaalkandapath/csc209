@@ -59,29 +59,51 @@ int main(void) {
 
     // Read input from the user and send it to the server. Echo any output
     // received from the server.
-    while (1) {
-        num_read = read(STDIN_FILENO, buf, BUF_SIZE);
-        if (num_read == 0) {
-            break;
-        }
-        buf[num_read] = '\0';
+    // file descriptors by initializing a set of file descriptors.
+    int max_fd = sock_fd;
+    fd_set all_fds;
+    FD_ZERO(&all_fds);
+    FD_SET(sock_fd, &all_fds);
+    FD_SET(STDIN_FILENO, &all_fds);
 
-        /*
-         * We should really send "\r\n" too, so the server can identify partial
-         * reads, but you are not required to handle partial reads in this lab.
-         */
-        if (write(sock_fd, buf, num_read) != num_read) {
-            perror("client: write");
-            close(sock_fd);
+    if (STDIN_FILENO > sock_fd){
+        max_fd = STDIN_FILENO; //idt i need this, but anyway
+    }
+    while (1) {
+
+        // select updates the fd_set it receives, so we always use a copy and retain the original.
+        fd_set listen_fds = all_fds;
+        if (select(max_fd + 1, &listen_fds, NULL, NULL, NULL) == -1) {
+            perror("server: select");
             exit(1);
         }
 
-        num_read = read(sock_fd, buf, sizeof(buf) - 1);
-        if (num_read == 0) {
-            break;
+        if (FD_ISSET(sock_fd, &listen_fds)) {
+            //the server speaks! Behold
+            num_read = read(sock_fd, buf, sizeof(buf) - 1);
+            if (num_read == 0) {
+                break;
+            }
+            buf[num_read] = '\0';
+            printf("%s", buf);
+        }else{
+            //human speaks, meh
+            num_read = read(STDIN_FILENO, buf, BUF_SIZE);
+            if (num_read == 0) {
+                break;
+            }
+            buf[num_read] = '\0';
+
+            /*
+            * We should really send "\r\n" too, so the server can identify partial
+            * reads, but you are not required to handle partial reads in this lab.
+            */
+            if (write(sock_fd, buf, num_read) != num_read) {
+                perror("client: write");
+                close(sock_fd);
+                exit(1);
+            }
         }
-        buf[num_read] = '\0';
-        printf("[Server] %s", buf);
     }
 
     close(sock_fd);
