@@ -77,18 +77,29 @@ int read_from(int client_index, struct sockname *users) {
         //need to read in a username:
         users[client_index].username = malloc(num_read + 1);
         strncpy(users[client_index].username, buf, num_read+1); //copies in the null terminator too so alls good
-    }else if (num_read == 0 || write(fd, buf, strlen(buf)) != strlen(buf)) {
-        users[client_index].sock_fd = -1;
-        return fd;
     }else{
+        char total_string[2*BUF_SIZE + 2];
+        strncpy(total_string, users[client_index].username, strlen(users[client_index].username) - 1); //dont copy the newline characterin
+        total_string[strlen(users[client_index].username) - 1] = '\0';
+        char mid_string[3] = ": ";
+        strncat(total_string, mid_string, strlen(mid_string));
+        strncat(total_string, buf, num_read + 1); //reads in a null terminating character too
+        int written = 0;
+
         //write to all other clients:
         int user_index = 0;
         while (user_index < MAX_CONNECTIONS) {
-            if (users[user_index].sock_fd != -1 && users[user_index].sock_fd != users[client_index].sock_fd){
+            if (users[user_index].sock_fd != -1 ){
                 //this is an active connection and not the same connection
-                write(users[user_index].sock_fd, buf, strlen(buf)); //write to all other clients
+                written = write(users[user_index].sock_fd, total_string, strlen(total_string));
+                written = users[user_index].sock_fd != users[client_index].sock_fd ? 0 : written; //write to all other clients
             }
             user_index++;
+        }
+
+        if (num_read == 0 || written != strlen(total_string)) {
+            users[client_index].sock_fd = -1;
+            return fd;
         }
     }
 
