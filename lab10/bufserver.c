@@ -103,9 +103,7 @@ int main() {
 int find_network_newline(const char *buf, int n) {
     char * end_ptr = strstr(buf, "\r\n");
     if(end_ptr){
-        // printf("%ld %d\n", (end_ptr - buf), n);
         if ((end_ptr - buf) < n){
-            // printf("%ld\n", (end_ptr - buf) + 1);
             return (end_ptr - buf) + 2;
         }
     }
