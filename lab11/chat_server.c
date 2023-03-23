@@ -91,8 +91,11 @@ int read_from(int client_index, struct sockname *users) {
         while (user_index < MAX_CONNECTIONS) {
             if (users[user_index].sock_fd != -1 ){
                 //this is an active connection and not the same connection
-                written = write(users[user_index].sock_fd, total_string, strlen(total_string));
-                written = users[user_index].sock_fd != users[client_index].sock_fd ? 0 : written; //write to all other clients
+                if (users[user_index].sock_fd != users[client_index].sock_fd){
+                    write(users[user_index].sock_fd, total_string, strlen(total_string));
+                }else{
+                    written = write(users[user_index].sock_fd, total_string, strlen(total_string));
+                }
             }
             user_index++;
         }
