@@ -24,7 +24,7 @@ int main(void) {
     struct sockaddr_in server;
     server.sin_family = AF_INET;
     server.sin_port = htons(PORT);
-    if (inet_pton(AF_INET, "127.0.0.1", &server.sin_addr) < 1) {
+    if (inet_pton(AF_INET, "127.0.0.1", &server.sin_addr) < 1) { //storing the ip address in binary to sin_addr field. <1 if unsuccessful
         perror("client: inet_pton");
         close(sock_fd);
         exit(1);
