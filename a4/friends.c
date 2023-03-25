@@ -137,25 +137,83 @@ int make_friends(const char *name1, const char *name2, User *head) {
     return 0;
 }
 
-
 /*
+ *  compute the length of a string to print out a post
+ *  Use localtime to print the time and date.
+ */
+int print_post_compute_length(const Post *post) {
+    int length = 0;
+    if (post == NULL) {
+        return 0;
+    }
+    // Print author
+    length += snprintf(NULL, 0, "From: %s\n", post->author);
+
+    // Print date
+    length += snprintf(NULL, 0, "Date: %s\n", asctime(localtime(post->date)));
+
+    // Print message
+    length += snprintf(NULL, 0, "%s\n", post->contents);
+
+    return length;
+}
+
+/* DELETEE KLJDSKLFJKLSDFJDKLSJFDKLSFJDKLSJLJDSLKJFLKSJ
  *  Print a post.
  *  Use localtime to print the time and date.
  */
-int print_post(const Post *post) {
+void print_post(const Post *post, char *output, int output_length) {
     if (post == NULL) {
-        return 1;
+        return;
     }
     // Print author
-    printf("From: %s\n", post->author);
+    snprintf(output + strlen(output), output_length - strlen(output), "From: %s\n", post->author);
+    // printf("From: %s\n", post->author);
 
     // Print date
-    printf("Date: %s\n", asctime(localtime(post->date)));
+    snprintf(output + strlen(output), output_length - strlen(output), "Date: %s\n", asctime(localtime(post->date)));
+    // printf("Date: %s\n", asctime(localtime(post->date)));
 
     // Print message
-    printf("%s\n", post->contents);
+    snprintf(output + strlen(output), output_length - strlen(output), "%s\n", post->contents);
+    // printf("%s\n", post->contents);
 
-    return 0;
+    return;
+}
+
+/*
+Compute the string length required for storing the output of printing a user profile in a string*/
+int print_user_compute_length(const User *user) {
+    int length = 0;
+    if (user == NULL) {
+        return 0;
+    }
+
+    // Print name
+    length += snprintf(NULL, 0, "Name: %s\n\n", user->name);
+    length += strlen("------------------------------------------\n");
+
+    // Print friend list.
+    length += strlen("Friends:\n");
+    for (int i = 0; i < MAX_FRIENDS && user->friends[i] != NULL; i++) {
+        length += snprintf(NULL, 0, "%s\n", user->friends[i]->name);
+    }
+    length += strlen("------------------------------------------\n");
+
+    // Print post list.
+    length += strlen("Posts:\n");
+    const Post *curr = user->first_post;
+    while (curr != NULL) {\
+        const Post * curr_dup = curr;
+        length += print_post_compute_length(curr_dup);
+        curr = curr->next;
+        if (curr != NULL) {
+            length += strlen("\n===\n\n");
+        }
+    }
+    length += strlen("------------------------------------------\n");
+
+    return length;
 }
 
 
@@ -167,35 +225,45 @@ int print_post(const Post *post) {
  *   - 0 on success.
  *   - 1 if the user is NULL.
  */
-int print_user(const User *user) {
+char * print_user(const User *user) {
     if (user == NULL) {
-        return 1;
+        return NULL;
     }
+    const User *user_dup = user;
+    int base_length = print_user_compute_length(user_dup) + 3;  
+    char * output = malloc(base_length); //1 for null terminator, 2 \r\n
 
     // Print name
-    printf("Name: %s\n\n", user->name);
-    printf("------------------------------------------\n");
+    snprintf(output, base_length, "Name: %s\n\n", user->name);
+    // printf("Name: %s\n\n", user->name);
+    snprintf(output + strlen(output), base_length - strlen(output), "%s", "------------------------------------------\n");
+    // printf("------------------------------------------\n");
 
     // Print friend list.
-    printf("Friends:\n");
+    snprintf(output + strlen(output), base_length - strlen(output), "%s", "Friends:\n");
+    // printf("Friends:\n");
     for (int i = 0; i < MAX_FRIENDS && user->friends[i] != NULL; i++) {
-        printf("%s\n", user->friends[i]->name);
+        snprintf(output + strlen(output), base_length - strlen(output), "%s\n", user->friends[i]->name);
+        // printf("%s\n", user->friends[i]->name);
     }
-    printf("------------------------------------------\n");
+    snprintf(output + strlen(output), base_length - strlen(output), "%s", "------------------------------------------\n");
+    // printf("------------------------------------------\n");
 
     // Print post list.
-    printf("Posts:\n");
+    snprintf(output + strlen(output), base_length - strlen(output), "%s", "Posts:\n");
+    // printf("Posts:\n");
     const Post *curr = user->first_post;
     while (curr != NULL) {
-        print_post(curr);
+        print_post(curr, output, base_length);
         curr = curr->next;
         if (curr != NULL) {
-            printf("\n===\n\n");
+            snprintf(output + strlen(output), base_length - strlen(output), "%s", "\n===\n\n");
         }
     }
-    printf("------------------------------------------\n");
+    snprintf(output + strlen(output), base_length - strlen(output), "%s", "------------------------------------------\n");
+    // printf("------------------------------------------\n");
 
-    return 0;
+    return output;
 }
 
 

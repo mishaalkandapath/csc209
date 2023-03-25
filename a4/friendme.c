@@ -88,8 +88,12 @@ int process_args(int cmd_argc, char **cmd_argv, User **user_list_ptr) {
         }
     } else if (strcmp(cmd_argv[0], "profile") == 0 && cmd_argc == 2) {
         User *user = find_user(cmd_argv[1], user_list);
-        if (print_user(user) == 1) {
+        char * buf = print_user(user);
+        if (buf == NULL) {
             error("user not found");
+        }else{
+            printf("%s", buf);
+            free(buf);
         }
     } else {
         error("Incorrect syntax");

@@ -78,7 +78,7 @@ int make_friends(const char *name1, const char *name2, User *head);
  *   - 0 on success.
  *   - 1 if the user is NULL.
  */
-int print_user(const User *user);
+char * print_user(const User *user);
 
 
 /*
