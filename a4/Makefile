@@ -1,8 +1,8 @@
 #port selection:
-PORT=58140
+PORT=58136
 CFLAGS= -DPORT=\$(PORT) -g -std=gnu99 -Wall -Werror
 
-friend_server: friendme friend_server
+friend_server: friends.o friend_server.c
 	gcc $(CFLAGS) -o friend_server friend_server.c
 
 friendme: friendme.o friends.o

@@ -46,7 +46,7 @@ User *find_user(const char *name, const User *head);
  * Print the usernames of all users in the list starting at curr.
  * Names should be printed to standard output, one per line.
  */
-void list_users(const User *curr);
+char * list_users(const User *curr);
 
 
 

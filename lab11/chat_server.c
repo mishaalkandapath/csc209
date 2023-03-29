@@ -95,8 +95,7 @@ int read_from(int client_index, struct sockname *users) {
         }
 
         while (user_index < MAX_CONNECTIONS) {
-            if (users[user_index].sock_fd != -1 ){
-                printf("%s %d ", total_string, users[user_index].sock_fd);   
+            if (users[user_index].sock_fd != -1 ){;   
                 //this is an active connection and not the same connection
                 if (users[user_index].sock_fd != users[client_index].sock_fd){
                     write(users[user_index].sock_fd, total_string, strlen(total_string));

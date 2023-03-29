@@ -115,6 +115,7 @@ int tokenize(char *cmd, char **cmd_argv) {
             cmd_argc = 0;
             break;
         }
+        printf("some token is %s", next_token);
         cmd_argv[cmd_argc] = next_token;
         cmd_argc++;
         next_token = strtok(NULL, DELIM);
