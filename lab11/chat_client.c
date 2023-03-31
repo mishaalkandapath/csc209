@@ -85,7 +85,7 @@ int main(void) {
                 break;
             }
             buf[num_read] = '\0';
-            printf("%s", buf);
+            printf("[Server] %s", buf);
         }else if (FD_ISSET(STDIN_FILENO, &listen_fds)){
             //human speaks, meh
             num_read = read(STDIN_FILENO, buf, BUF_SIZE);
