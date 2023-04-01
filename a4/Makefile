@@ -1,5 +1,5 @@
 #port selection:
-PORT=58137
+PORT=58136
 CFLAGS= -DPORT=\$(PORT) -g -std=gnu99 -Wall -Werror
 
 friend_server: friends.o friend_server.c
