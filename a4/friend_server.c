@@ -86,6 +86,13 @@ void close_connection(struct sockname * user){
     close(user -> sock_fd);
 }
 
+void syscall_errors(char *msg, int return_val){
+    if (return_val == -1){
+        perror(msg);
+        exit(1);
+    }
+}
+
 /**
  * Send the given message from author to target, if currently connected:
  * 
@@ -94,17 +101,14 @@ int send_post(char *author, char *target, char *msg, struct sockname *users){
 
     struct sockname *current = users;
     while (current){
-        printf("sending post to %s %s %d\n", current -> username, target, current -> sock_fd);
         if (strcmp(current -> username, target) == 0 && current -> sock_fd != -1){
-            char *buf = malloc(strlen("From ") + strlen(author) + strlen(": ") + strlen(msg) + 3);
-            int ret = snprintf(buf, strlen("From ") + strlen(author) + strlen(": ") + strlen(msg) + 3, "From %s: %s\r\n", author, msg);
-            if (ret == -1){
-                perror("malloc");
-                exit(1);
-            }
-            write(current -> sock_fd, buf, strlen(buf));//not sure how to check disconnection here, as we are in a different client, so will leave this 
+            int write_length = strlen("From ") + strlen(author) + strlen(": ") + strlen(msg) + 3;
+            char *buf = malloc(write_length);
+            int ret = snprintf(buf, write_length, "From %s: %s\r\n", author, msg);
+            syscall_errors("malloc", ret);
+            int r = write(current -> sock_fd, buf, strlen(buf));//not sure how to check disconnection here, as we are in a different client, so will leave this 
+            syscall_errors("write", r); //check if write failed system-wise
             free(buf);
-            return 0;
         }
         current = current -> next;
     }
@@ -125,10 +129,13 @@ int process_args(int cmd_argc, char **cmd_argv, User **user_list_ptr, char * use
         return -1;
     } else if (strcmp(cmd_argv[0], "list_users") == 0 && cmd_argc == 1) {
         char *buf = list_users(user_list);
+
         if (buf == NULL) {
             return error("user not found\r\n", client_fd);
         }else{
-            if (write(client_fd, buf, strlen(buf)) != strlen(buf)){
+            int r = write(client_fd, buf, strlen(buf));
+            syscall_errors("write", r); //check if write failed system-wise
+            if (r != strlen(buf)){
                 return -1; //client probably disconnected
             }
             printf("%s", buf);
@@ -162,10 +169,7 @@ int process_args(int cmd_argc, char **cmd_argv, User **user_list_ptr, char * use
 
         // allocate the space
         char *contents = malloc(space_needed);
-        if (contents == NULL) {
-            perror("malloc");
-            exit(1);
-        }
+        syscall_errors("malloc", contents == NULL ? -1 : 0);
 
         // copy in the bits to make a single string
         strcpy(contents, cmd_argv[2]);
@@ -177,10 +181,9 @@ int process_args(int cmd_argc, char **cmd_argv, User **user_list_ptr, char * use
         User *author = find_user(username, user_list);
         User *target = find_user(cmd_argv[1], user_list);
         switch (make_post(author, target, contents)) {
+            
             case 0: 
-            //send the post to the target person. 
-            return send_post(author -> name, target -> name, contents, users);
-
+                return send_post(author -> name, target -> name, contents, users);
             case 1:
                 return error("You can only post to your friends\r\n", client_fd);
 
@@ -188,18 +191,18 @@ int process_args(int cmd_argc, char **cmd_argv, User **user_list_ptr, char * use
                 return error("The user you entered does not exist\r\n", client_fd);
 
         }
+
     } else if (strcmp(cmd_argv[0], "profile") == 0 && cmd_argc == 2) {
+
         User *user = find_user(cmd_argv[1], user_list);
         char * buf = print_user(user);
-        if (buf == NULL) {
-            return error("User not found\r\n", client_fd);
-        }else{
-            if (write(client_fd, buf, strlen(buf)) != strlen(buf)){
-                return -1; //client probably disconnected
-            }
-            printf("%s", buf);
-            free(buf);
+        int r = write(client_fd, buf, strlen(buf));
+        syscall_errors("write", r); //check if write failed system-wise
+        if (r != strlen(buf)){
+            return -1; //client probably disconnected
         }
+        printf("%s", buf);
+        free(buf);
     } else {
         return error("Incorrect syntax\r\n", client_fd);
     }
@@ -215,6 +218,7 @@ int process_args(int cmd_argc, char **cmd_argv, User **user_list_ptr, char * use
 int accept_connection(int fd, struct sockname *users) {
 
     int client_fd = accept(fd, NULL, NULL);
+
     if (client_fd < 0) {
         perror("server: accept");
         close(fd);
@@ -224,6 +228,7 @@ int accept_connection(int fd, struct sockname *users) {
     //ask for username 
     char *enter_string = "What is your user name?\r\n";
     int num_written = write(client_fd, enter_string, strlen(enter_string));
+    syscall_errors("write", num_written); //check if write failed system-wise
     if (num_written != strlen("What is your user name?\r\n")) {
         return -1;
     }
@@ -231,7 +236,6 @@ int accept_connection(int fd, struct sockname *users) {
     if (users -> sock_fd == -1){
         users -> sock_fd = client_fd;
         users -> username = NULL;
-        // users -> next = NULL;
         users -> inbuf = 0;
         users -> last_command = malloc(INPUT_BUFFER_SIZE);
         strncpy(users -> last_command, "\0", INPUT_BUFFER_SIZE); 
@@ -289,48 +293,54 @@ int read_username(struct sockname *user, User **user_list_ptr) {
     strncpy(user -> username, buf, strlen(buf) + 1); //copies in the null terminator too so alls good
     (user -> username)[strlen(buf)] = '\0';
     free(buf);
+
     switch(create_user(user -> username, user_list_ptr)){
         case 1:
             return error("Welcome back.\r\nGo ahead and enter user commands>\r\n", fd);
-            break;
         case 2:
             return error("username is too long\r\n", fd);
-            break;
-            default:
+        default:
             return error("Welcome.\r\nGo ahead and enter user commands>\r\n", fd);
     }
+
+
     printf("server: client is now known as %s", user -> username);
-    return 100;
+    return 1; // standard return
+}
+
+int handle_partial_reads(int nbytes, struct sockname *user, User **user_list_ptr, struct sockname *users){
+    int latest_ret = 0;
+    user -> inbuf += nbytes;
+    int where;
+    while ((where = find_network_newline(user -> last_command, user -> inbuf)) > 0) {
+        (user -> last_command)[where - 2]= '\0';
+        printf("in here\n");
+        printf("Next message: %s\n", user -> last_command); //NEED TO RUN COMMAND HERE
+        if (user -> username == NULL){
+            //this is a username operation
+            latest_ret = read_username(user, user_list_ptr);
+        }else{
+            latest_ret = latest_ret == -1 ? -1 : read_from(user, user_list_ptr, users);
+        }
+        (user -> inbuf) -= (where);
+        memmove(user -> last_command, user -> last_command + where, user -> inbuf);
+        for (int i = user -> inbuf; i < INPUT_BUFFER_SIZE; i++){
+            (user -> last_command)[i] = '\0';
+        }
+    }
+    printf("moving out of theloop here");
+    user -> after = user -> last_command + user -> inbuf;
+    return latest_ret;
 }
 
 /**
  * Handle partial reads from clients
 */
 int read_from_client(struct sockname *user, User **user_list_ptr, struct sockname *users){
-    int latest_ret = 10; //random vakue
+    
     int nbytes = read(user -> sock_fd, user -> after, INPUT_BUFFER_SIZE - user -> inbuf);
     if (nbytes > 0){
-        user -> inbuf += nbytes;
-        int where;
-        while ((where = find_network_newline(user -> last_command, user -> inbuf)) > 0) {
-            (user -> last_command)[where - 2]= '\0';
-            printf("in here\n");
-            printf("Next message: %s\n", user -> last_command); //NEED TO RUN COMMAND HERE
-            if (user -> username == NULL){
-                //this is a username operation
-                latest_ret = read_username(user, user_list_ptr);
-            }else{
-                latest_ret = latest_ret == -1 ? -1 : read_from(user, user_list_ptr, users);
-            }
-            (user -> inbuf) -= (where);
-            memmove(user -> last_command, user -> last_command + where, user -> inbuf);
-            for (int i = user -> inbuf; i < INPUT_BUFFER_SIZE; i++){
-                (user -> last_command)[i] = '\0';
-            }
-        }
-        printf("moving out of theloop here");
-        user -> after = user -> last_command + user -> inbuf;
-        return latest_ret;
+        handle_partial_reads(nbytes, user, user_list_ptr, users);
     }else if (nbytes == 0){
         return -1;
     }else{
@@ -338,7 +348,6 @@ int read_from_client(struct sockname *user, User **user_list_ptr, struct socknam
         return -1;
     }
     return -1; //should never happen
-
 
 }
 
