@@ -29,12 +29,9 @@ struct sockname {
     char *after;
 };
 
-//global variable to keep track of all the users connected
-struct sockname *users;
-
 
 /* 
- * Print a formatted error message to stderr.
+ * Print a formatted error message to the user 
  */
 int error(char *msg, int fd) {
     if (write(fd, msg, strlen(msg)) != strlen(msg)){
@@ -81,15 +78,24 @@ int find_network_newline(const char *buf, int n) {
     return -1;
 }
 
+void close_connection(struct sockname * user){
+    user -> sock_fd = -1;
+    free(user -> last_command);
+    free(user -> username);
+    user -> last_command = malloc(INPUT_BUFFER_SIZE);//leaving this space empty so that another user can fill 
+    close(user -> sock_fd);
+}
+
 /**
  * Send the given message from author to target, if currently connected:
  * 
 */
-int send_post(char *author, char *target, char *msg){
+int send_post(char *author, char *target, char *msg, struct sockname *users){
 
     struct sockname *current = users;
-    while (current != NULL){
-        if (strcmp(current -> username, target) == 0){
+    while (current){
+        printf("sending post to %s %s %d\n", current -> username, target, current -> sock_fd);
+        if (strcmp(current -> username, target) == 0 && current -> sock_fd != -1){
             char *buf = malloc(strlen("From ") + strlen(author) + strlen(": ") + strlen(msg) + 3);
             int ret = snprintf(buf, strlen("From ") + strlen(author) + strlen(": ") + strlen(msg) + 3, "From %s: %s\r\n", author, msg);
             if (ret == -1){
@@ -100,6 +106,7 @@ int send_post(char *author, char *target, char *msg){
             free(buf);
             return 0;
         }
+        current = current -> next;
     }
     return 0;
 }
@@ -109,7 +116,7 @@ int send_post(char *author, char *target, char *msg){
  * Return:  -1 for quit command
  *          0 otherwise
  */
-int process_args(int cmd_argc, char **cmd_argv, User **user_list_ptr, char * username, int client_fd) {
+int process_args(int cmd_argc, char **cmd_argv, User **user_list_ptr, char * username, int client_fd, struct sockname *users) {
     User *user_list = *user_list_ptr;
 
     if (cmd_argc <= 0) {
@@ -172,7 +179,7 @@ int process_args(int cmd_argc, char **cmd_argv, User **user_list_ptr, char * use
         switch (make_post(author, target, contents)) {
             case 0: 
             //send the post to the target person. 
-            return send_post(author -> name, target -> name, contents);
+            return send_post(author -> name, target -> name, contents, users);
 
             case 1:
                 return error("You can only post to your friends\r\n", client_fd);
@@ -207,11 +214,6 @@ int process_args(int cmd_argc, char **cmd_argv, User **user_list_ptr, char * use
  */
 int accept_connection(int fd, struct sockname *users) {
 
-    // if (user_index == MAX_CONNECTIONS) {
-    //     fprintf(stderr, "server: max concurrent connections\n");
-    //     return -1;
-    // }
-
     int client_fd = accept(fd, NULL, NULL);
     if (client_fd < 0) {
         perror("server: accept");
@@ -229,7 +231,7 @@ int accept_connection(int fd, struct sockname *users) {
     if (users -> sock_fd == -1){
         users -> sock_fd = client_fd;
         users -> username = NULL;
-        users -> next = NULL;
+        // users -> next = NULL;
         users -> inbuf = 0;
         users -> last_command = malloc(INPUT_BUFFER_SIZE);
         strncpy(users -> last_command, "\0", INPUT_BUFFER_SIZE); 
@@ -251,7 +253,7 @@ int accept_connection(int fd, struct sockname *users) {
     return client_fd;
 }
 
-int read_from(struct sockname *user, User **user_list_ptr){
+int read_from(struct sockname *user, User **user_list_ptr, struct sockname *users){
     int fd = user -> sock_fd;
     char *buf = malloc(INPUT_BUFFER_SIZE);
     strncpy(buf, user -> last_command, strlen(user -> last_command));
@@ -259,10 +261,10 @@ int read_from(struct sockname *user, User **user_list_ptr){
     // process the input
     char *cmd_argv[INPUT_ARG_MAX_NUM];
     int cmd_argc = tokenize(buf, cmd_argv, fd);
-    int r = process_args(cmd_argc, cmd_argv, user_list_ptr, user -> username, fd);
+    int r = process_args(cmd_argc, cmd_argv, user_list_ptr, user -> username, fd, users);
     free(buf);
     if (cmd_argc > 0 && r  == -1) {
-        close(fd); // can only reach if quit command was entered
+        close_connection(user); // can only reach if quit command was entered
         return -1;
     }
     return r;
@@ -304,7 +306,7 @@ int read_username(struct sockname *user, User **user_list_ptr) {
 /**
  * Handle partial reads from clients
 */
-int read_from_client(struct sockname *user, User **user_list_ptr){
+int read_from_client(struct sockname *user, User **user_list_ptr, struct sockname *users){
     int latest_ret = 10; //random vakue
     int nbytes = read(user -> sock_fd, user -> after, INPUT_BUFFER_SIZE - user -> inbuf);
     if (nbytes > 0){
@@ -318,7 +320,7 @@ int read_from_client(struct sockname *user, User **user_list_ptr){
                 //this is a username operation
                 latest_ret = read_username(user, user_list_ptr);
             }else{
-                latest_ret = latest_ret == -1 ? -1 : read_from(user, user_list_ptr);
+                latest_ret = latest_ret == -1 ? -1 : read_from(user, user_list_ptr, users);
             }
             (user -> inbuf) -= (where);
             memmove(user -> last_command, user -> last_command + where, user -> inbuf);
@@ -342,7 +344,8 @@ int read_from_client(struct sockname *user, User **user_list_ptr){
 
 
 int main(int argc, char* argv[]) {
-
+    //variable to keep track of all the users connected
+    struct sockname *users;
     // Create the heads of the empty data structure
     User *user_list = NULL;
     users = malloc(sizeof(struct sockname));
@@ -417,14 +420,16 @@ int main(int argc, char* argv[]) {
         // ... otherwise, it must be a client socket. Read from it.
         temp = users;
         while (temp){
+            printf("main loop %s %d\n", temp -> username, temp -> sock_fd);
             if ((temp -> sock_fd) > -1 && FD_ISSET(temp -> sock_fd, &listen_fds)) {
                 printf("Client %d %s is saying somrthiung \n", temp -> sock_fd ,temp -> username);
                 //valid user read request
                 // Note: never reduces max_fd
-                int client_closed = read_from_client(temp, &user_list);
+                int client_closed = read_from_client(temp, &user_list, users);
                 printf("sdfsdf %d\n", client_closed);
                 if (client_closed < 0) {
                     FD_CLR(temp -> sock_fd, &all_fds);
+                    temp -> sock_fd = -1;
                 } //remove clsoe fd from listening set
             }
             temp = temp -> next;
