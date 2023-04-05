@@ -73,9 +73,9 @@ User *find_user(const char *name, const User *head) {
 }
 
 int list_users_compute_length(const User *curr) {
-    int length = strlen("User List\n");
+    int length = 0;
     while (curr != NULL) {
-        length += snprintf(NULL, 0, "\t%s\n",curr->name);
+        length += snprintf(NULL, 0, "%s\r\n",curr->name);
         curr = curr->next;
     }
     return length;
@@ -93,14 +93,12 @@ char * list_users(const User *curr) {
         perror("malloc");
         exit(1);
     }
-    snprintf(buffer, length, "User List\r\n");
+    strcpy(buffer, "\0"); // Initialize buffer to empty string
     while (curr != NULL) {
-        snprintf(buffer + strlen(buffer), length - strlen(buffer), "\t%s\r\n",curr->name);
-        // printf("\t%s\n",curr->name);
+        snprintf(buffer + strlen(buffer), length - strlen(buffer), "%s\r\n",curr->name);
         curr = curr->next;
     }
 
-    snprintf(buffer + strlen(buffer), length - strlen(buffer), "\r\n");
     return buffer;
 }
 

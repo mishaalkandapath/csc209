@@ -79,11 +79,10 @@ int find_network_newline(const char *buf, int n) {
 }
 
 void close_connection(struct sockname * user){
-    user -> sock_fd = -1;
+    close(user -> sock_fd);
     free(user -> last_command);
     free(user -> username);
     user -> last_command = malloc(INPUT_BUFFER_SIZE);//leaving this space empty so that another user can fill 
-    close(user -> sock_fd);
 }
 
 void syscall_errors(char *msg, int return_val){
@@ -129,19 +128,13 @@ int process_args(int cmd_argc, char **cmd_argv, User **user_list_ptr, char * use
         return -1;
     } else if (strcmp(cmd_argv[0], "list_users") == 0 && cmd_argc == 1) {
         char *buf = list_users(user_list);
-
-        if (buf == NULL) {
-            return error("user not found\r\n", client_fd);
-        }else{
-            int r = write(client_fd, buf, strlen(buf));
-            syscall_errors("write", r); //check if write failed system-wise
-            if (r != strlen(buf)){
-                return -1; //client probably disconnected
-            }
-            printf("%s", buf);
-            free(buf);
+        int r = write(client_fd, buf, strlen(buf));
+        syscall_errors("write", r); //check if write failed system-wise
+        if (r != strlen(buf)){
+            return -1; //client probably disconnected
         }
-
+        printf("%s", buf);
+        free(buf);
     } else if (strcmp(cmd_argv[0], "make_friends") == 0 && cmd_argc == 2) {
         char msg[27+MAX_NAME];
         switch (make_friends(cmd_argv[1], username, user_list)) {
@@ -340,8 +333,9 @@ int read_from_client(struct sockname *user, User **user_list_ptr, struct socknam
     
     int nbytes = read(user -> sock_fd, user -> after, INPUT_BUFFER_SIZE - user -> inbuf);
     if (nbytes > 0){
-        handle_partial_reads(nbytes, user, user_list_ptr, users);
+        return handle_partial_reads(nbytes, user, user_list_ptr, users);
     }else if (nbytes == 0){
+        close_connection(user);
         return -1;
     }else{
         perror("server: read");
