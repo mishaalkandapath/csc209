@@ -2,14 +2,11 @@
 PORT=58136
 CFLAGS= -DPORT=\$(PORT) -g -std=gnu99 -Wall -Werror
 
-friend_server: friends.o friend_server.c
-	gcc $(CFLAGS) -o friend_server friend_server.c
+friend_server: friends.o friend_server.o
+	gcc $(CFLAGS) -o friend_server friend_server.o friends.o
 
-friendme: friendme.o friends.o
-	gcc $(CFLAGS) -o friendme friendme.o friends.o
-
-friendme.o: friendme.c friends.h
-	gcc $(CFLAGS) -c friendme.c
+friend_server.o: friend_server.c
+	gcc $(CFLAGS) -c friend_server.c
 
 friends.o: friends.c friends.h
 	gcc $(CFLAGS) -c friends.c
