@@ -1,3 +1,9 @@
+/* 
+ * Created on Sat Mar 25 2023 
+ * 
+ * Copyright (c) 2023 Mishaal Kandapath 
+ */
+
 #include "friends.h"
 
 #include <stdio.h>

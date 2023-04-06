@@ -185,15 +185,12 @@ void print_post(const Post *post, char *output, int output_length) {
     }
     // Print author
     snprintf(output + strlen(output), output_length - strlen(output), "From: %s\r\n", post->author);
-    // printf("From: %s\n", post->author);
 
     // Print date
     snprintf(output + strlen(output), output_length - strlen(output), "Date: %s\r\n", asctime(localtime(post->date)));
-    // printf("Date: %s\n", asctime(localtime(post->date)));
 
     // Print message
     snprintf(output + strlen(output), output_length - strlen(output), "%s\r\n", post->contents);
-    // printf("%s\n", post->contents);
 
     return;
 }
@@ -252,23 +249,17 @@ char * print_user(const User *user) {
 
     // Print name
     snprintf(output, base_length, "Name: %s\r\n\r\n", user->name);
-    // printf("Name: %s\n\n", user->name);
     snprintf(output + strlen(output), base_length - strlen(output), "%s", "------------------------------------------\r\n");
-    // printf("------------------------------------------\n");
 
     // Print friend list.
     snprintf(output + strlen(output), base_length - strlen(output), "%s", "Friends:\n");
-    // printf("Friends:\n");
     for (int i = 0; i < MAX_FRIENDS && user->friends[i] != NULL; i++) {
         snprintf(output + strlen(output), base_length - strlen(output), "%s\r\n", user->friends[i]->name);
-        // printf("%s\n", user->friends[i]->name);
     }
     snprintf(output + strlen(output), base_length - strlen(output), "%s", "------------------------------------------\r\n");
-    // printf("------------------------------------------\n");
 
     // Print post list.
     snprintf(output + strlen(output), base_length - strlen(output), "%s", "Posts:\r\n");
-    // printf("Posts:\n");
     const Post *curr = user->first_post;
     while (curr != NULL) {
         print_post(curr, output, base_length);
