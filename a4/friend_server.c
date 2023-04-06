@@ -410,9 +410,7 @@ int handle_partial_reads(int nbytes, struct sockname *user, User **user_list_ptr
         }
         (user -> inbuf) -= (where); //update the number of bytes in the buffer
         memmove(user -> last_command, user -> last_command + where, user -> inbuf); //move the rest of the buffer to the front
-        for (int i = user -> inbuf; i < INPUT_BUFFER_SIZE; i++){ //null terminate the rest of the buffer
-            (user -> last_command)[i] = '\0';
-        }
+        memset(user -> last_command + user -> inbuf, '\0', INPUT_BUFFER_SIZE - user -> inbuf); //null terminate the rest of the buffer
     }
     user -> after = user -> last_command + user -> inbuf; //update the pointer to the end of the filled buffer
     return latest_ret;
