@@ -192,7 +192,7 @@ int accept_connection(int fd, struct sockname *users) {
         users -> next -> inbuf = 0;
         users -> next -> last_command = malloc(INPUT_BUFFER_SIZE);
         strncpy(users -> next -> last_command, "\0", INPUT_BUFFER_SIZE); 
-        users -> next -> after = (users -> next -> last_command);;
+        users -> next -> after = (users -> next -> last_command);
     }
     
     return client_fd;
